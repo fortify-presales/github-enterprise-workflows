@@ -64,9 +64,9 @@ Optional authentication mode:
 
 ## Recommended Action Selection
 
-- GHES: `fortify/github-action/with-ghes-artifacts@v3`
-- GitHub.com: `fortify/github-action@v3`
-- Custom storage: `fortify/github-action/without-artifacts@v3`
+- Default (deprecation-safe): `fortify/github-action/without-artifacts@v3`
+- GitHub.com (if artifact wrappers are required and approved): `fortify/github-action@v3`
+- GHES artifact wrapper mode may transitively rely on deprecated artifact action versions depending on upstream release state.
 
 ## Language Guidance
 

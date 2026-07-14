@@ -197,7 +197,7 @@ jobs:
           exit 1
 
       - name: Run Fortify FoD reusable flow
-        uses: fortify/github-action/with-ghes-artifacts@v3
+        uses: fortify/github-action/without-artifacts@v3
         with:
           debug: ${{ inputs.debug }}
         env:
