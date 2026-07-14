@@ -235,7 +235,7 @@ Minimum shared configuration for most examples:
   - Secret: `FOD_CLIENT_SECRET`
 - Sonatype:
   - Variable: `LIFECYCLE_SERVER_URL`
-  - Variable or Secret: `LIFECYCLE_USERNAME`
+  - Secret: `LIFECYCLE_USERNAME`
   - Secret: `LIFECYCLE_PASSWORD`
   - Variable: `LIFECYCLE_APPLICATIONS_ID`
 
@@ -248,11 +248,11 @@ Recommended split:
 - Organization Variables (non-sensitive):
   - `FOD_URL`
   - `LIFECYCLE_SERVER_URL`
-  - `LIFECYCLE_USERNAME`
   - `LIFECYCLE_APPLICATIONS_ID` (only if shared; set per-repo if app-specific)
 - Organization Secrets (sensitive):
   - `FOD_CLIENT_ID`
   - `FOD_CLIENT_SECRET`
+  - `LIFECYCLE_USERNAME`
   - `LIFECYCLE_PASSWORD`
 
 Scope model:
@@ -273,6 +273,7 @@ Workflow behavior notes:
 
 1. `secrets: inherit` in caller workflows passes accessible secrets to reusable workflow jobs.
 2. `${{ vars.NAME }}` resolves repository variables first, then organization-level variables when not overridden.
+3. `LIFECYCLE_USERNAME` is consumed as a secret in reusable Sonatype workflow calls.
 
 ## Create New Example Repositories From Templates
 
@@ -357,6 +358,7 @@ High-value docs:
 - `platform-docs/governance/compliance-rollout.md`
 - `platform-docs/publishing/repository-split.md`
 - `platform-docs/publishing/template-sync.md`
+- `platform-docs/publishing/release-and-tagging.md`
 
 ## Governance And Compliance Assets
 
@@ -379,8 +381,12 @@ These assets are intended for organization-wide rollout checks, template distrib
 
 1. Keep this monorepo as the editing source of truth.
 2. Publish updates with subtree script to platform repositories.
-3. Tag versions in split repositories (for example `v1`, `v1.2.0`).
+3. After publishing, create an immutable release tag (for example `v1.2.0`) and move major alias `v1` to that release commit so repositories using `@v1` receive updates.
 4. Update callers to consume tagged workflow/action releases.
+
+Release/tagging command runbook:
+
+- `platform-docs/publishing/release-and-tagging.md`
 
 ## License
 

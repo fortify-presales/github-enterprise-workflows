@@ -14,8 +14,8 @@ Validate and configure Sonatype SCA integration, including optional central CI c
 
 - LIFECYCLE_SERVER_URL configured
 - credentials configured
-  - LIFECYCLE_USERNAME
-  - LIFECYCLE_PASSWORD
+  - LIFECYCLE_USERNAME (secret)
+  - LIFECYCLE_PASSWORD (secret)
 - application_id and stage are valid
 - scan_targets are explicit and match repository manifests
 - scan_targets support per-service fanout in monorepos

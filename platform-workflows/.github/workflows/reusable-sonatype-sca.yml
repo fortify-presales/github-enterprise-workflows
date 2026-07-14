@@ -44,7 +44,7 @@ jobs:
         uses: sonatype/actions/evaluate@v1
         with:
           iq-server-url: ${{ vars.LIFECYCLE_SERVER_URL }}
-          username: ${{ vars.LIFECYCLE_USERNAME }}
+          username: ${{ secrets.LIFECYCLE_USERNAME }}
           password: ${{ secrets.LIFECYCLE_PASSWORD }}
           application-id: ${{ inputs.application_id }}
           stage: ${{ inputs.stage }}

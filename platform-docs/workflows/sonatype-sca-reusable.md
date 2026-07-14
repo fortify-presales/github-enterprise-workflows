@@ -20,8 +20,11 @@ Provide a reusable Sonatype SCA workflow with optional central configuration and
 ## Required Environment Variables
 
 - `LIFECYCLE_SERVER_URL`
-- `LIFECYCLE_USERNAME`
-- `LIFECYCLE_PASSWORD`
+
+## Required Credentials
+
+- `LIFECYCLE_USERNAME` (secret)
+- `LIFECYCLE_PASSWORD` (secret)
 
 ## Optional FoD Integration Variables
 

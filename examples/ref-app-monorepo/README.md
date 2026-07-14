@@ -24,8 +24,8 @@ Set these repository values before running scans:
 - Secrets:
   - `FOD_CLIENT_ID`
   - `FOD_CLIENT_SECRET`
+  - `LIFECYCLE_USERNAME`
   - `LIFECYCLE_PASSWORD`
 - Variables:
   - `FOD_URL`
   - `LIFECYCLE_SERVER_URL`
-  - `LIFECYCLE_USERNAME`
