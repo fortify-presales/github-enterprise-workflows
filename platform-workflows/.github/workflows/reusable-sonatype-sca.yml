@@ -52,7 +52,7 @@ jobs:
 
       - name: Upload Result File as an artifact
         if: ${{ inputs.upload_result_artifact && !cancelled() && steps.run-iq-cli.outputs.result-file-path }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         env:
           NODE_TLS_REJECT_UNAUTHORIZED: 0
         with:

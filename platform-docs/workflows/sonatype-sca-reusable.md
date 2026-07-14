@@ -53,7 +53,7 @@ If IQ CLI output artifact upload encounters GHES TLS chain issues, use this cont
 ```yaml
 - name: Upload Result File as an artifact
   if: ${{ !cancelled() && steps.run-iq-cli.outputs.result-file-path }}
-  uses: actions/upload-artifact@v3
+  uses: actions/upload-artifact@v4
   env:
     NODE_TLS_REJECT_UNAUTHORIZED: 0
   with:
