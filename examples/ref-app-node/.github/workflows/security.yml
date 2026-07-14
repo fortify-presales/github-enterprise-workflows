@@ -25,7 +25,7 @@ jobs:
   sonatype:
     uses: fortify-presales/platform-workflows/.github/workflows/reusable-sonatype-sca.yml@v1
     with:
-      application_id: ${{ vars.SONATYPE_APPLICATION_ID }}
+      application_id: ${{ vars.LIFECYCLE_APPLICATIONS_ID }}
       scan_targets: package.json package-lock.json
     secrets: inherit
 

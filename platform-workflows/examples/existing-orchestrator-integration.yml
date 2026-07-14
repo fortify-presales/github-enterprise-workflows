@@ -11,7 +11,7 @@ permissions:
 jobs:
   # Replace this with your existing detector/orchestrator output.
   # It must emit matrix JSON like:
-  # {"include":[{"service":"orders","path":"services/orders","language":"node","sonatype_application_id":"orders-app"}]}
+  # {"include":[{"service":"orders","path":"services/orders","language":"node","lifecycle_application_id":"orders-app"}]}
   detect:
     runs-on: ubuntu-latest
     outputs:
@@ -21,7 +21,7 @@ jobs:
         shell: bash
         run: |
           cat > matrix.json <<'JSON'
-          {"include":[{"service":"orders","path":"services/orders","language":"node","sonatype_application_id":"orders-app"}]}
+          {"include":[{"service":"orders","path":"services/orders","language":"node","lifecycle_application_id":"orders-app"}]}
           JSON
           echo "matrix<<EOF" >> "$GITHUB_OUTPUT"
           cat matrix.json >> "$GITHUB_OUTPUT"
@@ -54,7 +54,7 @@ jobs:
         include: ${{ fromJson(needs.detect.outputs.matrix).include }}
     uses: fortify-presales/platform-workflows/.github/workflows/reusable-sonatype-sca.yml@v1
     with:
-      application_id: ${{ matrix.sonatype_application_id }}
+      application_id: ${{ matrix.lifecycle_application_id }}
       scan_targets: ${{ format('{0}/package.json {0}/package-lock.json', matrix.path) }}
     secrets: inherit
 

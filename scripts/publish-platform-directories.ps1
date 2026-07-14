@@ -126,11 +126,25 @@ try {
             continue
         }
 
-        Invoke-Git subtree split --prefix=$prefix --branch $splitBranch $SourceRef | Out-Null
-        Invoke-Git push $repoUrl "$splitBranch`:main" --force | Out-Null
-        Invoke-Git branch -D $splitBranch | Out-Null
+        # Clean up any leftover branch from a previous failed run.
+        $existingSplitBranch = & git branch --list $splitBranch 2>$null
+        if (-not [string]::IsNullOrWhiteSpace(($existingSplitBranch -join "").Trim())) {
+            Write-Host "Removing existing local split branch '$splitBranch'"
+            Invoke-Git -Args @("branch", "-D", $splitBranch) | Out-Null
+        }
 
-        Write-Host "Published '$prefix' to '$Org/$repo:main'"
+        try {
+            Invoke-Git subtree split --prefix=$prefix --branch $splitBranch $SourceRef | Out-Null
+            Invoke-Git push $repoUrl "$splitBranch`:main" --force | Out-Null
+            Write-Host "Published '$prefix' to '$Org/${repo}:main'"
+        }
+        finally {
+            # Always remove temporary split branch, even if push fails.
+            $remainingSplitBranch = & git branch --list $splitBranch 2>$null
+            if (-not [string]::IsNullOrWhiteSpace(($remainingSplitBranch -join "").Trim())) {
+                Invoke-Git -Args @("branch", "-D", $splitBranch) | Out-Null
+            }
+        }
     }
 
     Write-Host "---"

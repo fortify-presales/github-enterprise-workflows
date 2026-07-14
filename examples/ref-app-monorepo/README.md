@@ -20,7 +20,7 @@ Minimal polyglot monorepo example for validating detector and fanout patterns.
 Set these repository values before running scans:
 
 - Variables:
-  - `SONATYPE_APPLICATION_ID_PREFIX` (for example `platform-example`)
+  - `LIFECYCLE_APPLICATIONS_ID_PREFIX` (for example `platform-example`)
 - Secrets:
   - `FOD_CLIENT_ID`
   - `FOD_CLIENT_SECRET`

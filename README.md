@@ -105,7 +105,7 @@ foreach ($r in $repos) { gh repo create "<org>/$r" --private -y }
 Preflight check before publish (must succeed for each target):
 
 ```powershell
-git ls-remote https://github.com/<org>/platform-workflows.git
+git ls-remote https://<git-host>/<org>/platform-workflows.git
 ```
 
 If this returns `Repository not found`, create the repository first or confirm your org permissions.
@@ -115,6 +115,12 @@ If this returns `Repository not found`, create the repository first or confirm y
 Use the helper script:
 
 - `scripts/publish-platform-directories.ps1`
+
+Recommended defaults:
+
+1. Prefer HTTPS mode unless your organization has SSH keys configured on all publisher runners.
+2. Set `-RepoHost` explicitly for GitHub Enterprise Server.
+3. Run a dry run first for each new organization/host setup.
 
 Default behavior publishes these mappings:
 
@@ -128,6 +134,38 @@ Important:
 1. The target repositories must already exist.
 2. You must have write access to each target repository.
 3. First publish uses force push to set target `main` from subtree history.
+
+Command patterns by host:
+
+1. GitHub.com dry run:
+
+```powershell
+.\scripts\publish-platform-directories.ps1 -Org <org> -SourceRef main -UseHttps -DryRun
+```
+
+2. GitHub.com publish:
+
+```powershell
+.\scripts\publish-platform-directories.ps1 -Org <org> -SourceRef main -UseHttps
+```
+
+3. GHES dry run:
+
+```powershell
+.\scripts\publish-platform-directories.ps1 -Org <org> -SourceRef main -UseHttps -RepoHost <ghes-host> -DryRun
+```
+
+4. GHES publish:
+
+```powershell
+.\scripts\publish-platform-directories.ps1 -Org <org> -SourceRef main -UseHttps -RepoHost <ghes-host>
+```
+
+5. HTTPS + PAT (GitHub.com or GHES):
+
+```powershell
+.\scripts\publish-platform-directories.ps1 -Org <org> -SourceRef main -UseHttps -RepoHost <git-host> -Pat "<TOKEN>"
+```
 
 Dry run first:
 
@@ -144,7 +182,7 @@ Publish:
 Include example projects:
 
 ```powershell
-.\scripts\publish-platform-directories.ps1 -Org fortify-presales -SourceRef main -IncludeExamples
+.\scripts\publish-platform-directories.ps1 -Org fortify-presales -SourceRef main -UseHttps -IncludeExamples
 ```
 
 Use HTTPS + PAT:
@@ -199,7 +237,42 @@ Minimum shared configuration for most examples:
   - Variable: `LIFECYCLE_SERVER_URL`
   - Variable or Secret: `LIFECYCLE_USERNAME`
   - Secret: `LIFECYCLE_PASSWORD`
-  - Variable: `SONATYPE_APPLICATION_ID`
+  - Variable: `LIFECYCLE_APPLICATIONS_ID`
+
+## Organization-Level Configuration (GitHub.com And GHES)
+
+Yes, these values can be managed at the organization level and inherited by repositories that are allowed to access them.
+
+Recommended split:
+
+- Organization Variables (non-sensitive):
+  - `FOD_URL`
+  - `LIFECYCLE_SERVER_URL`
+  - `LIFECYCLE_USERNAME`
+  - `LIFECYCLE_APPLICATIONS_ID` (only if shared; set per-repo if app-specific)
+- Organization Secrets (sensitive):
+  - `FOD_CLIENT_ID`
+  - `FOD_CLIENT_SECRET`
+  - `LIFECYCLE_PASSWORD`
+
+Scope model:
+
+1. Store common defaults at organization level.
+2. Override at repository level only when a specific app/repo needs different values.
+3. Restrict org secrets/variables to selected repositories where possible.
+
+UI paths:
+
+- GitHub.com:
+  - Organization `Settings` -> `Secrets and variables` -> `Actions`
+- GitHub Enterprise Server:
+  - Organization `Settings` -> `Secrets and variables` -> `Actions`
+  - Exact labels can vary slightly by GHES version, but location is the same in org settings.
+
+Workflow behavior notes:
+
+1. `secrets: inherit` in caller workflows passes accessible secrets to reusable workflow jobs.
+2. `${{ vars.NAME }}` resolves repository variables first, then organization-level variables when not overridden.
 
 ## Create New Example Repositories From Templates
 
@@ -239,6 +312,34 @@ Supported template names:
 - `ref-app-python`
 - `ref-app-dotnet`
 - `ref-app-monorepo`
+
+## Generate security.yml For Existing Repositories
+
+Use `scripts/new-security-workflow.ps1` to generate `.github/workflows/security.yml` in an existing repository.
+
+Node.js example for `sandbox-application`:
+
+```powershell
+.\scripts\new-security-workflow.ps1 -RepositoryPath C:\Users\klee2\repos\sandbox-application -Language node
+```
+
+Auto-detect language from repository files:
+
+```powershell
+.\scripts\new-security-workflow.ps1 -RepositoryPath C:\Users\klee2\repos\sandbox-application
+```
+
+Overwrite an existing `security.yml`:
+
+```powershell
+.\scripts\new-security-workflow.ps1 -RepositoryPath C:\Users\klee2\repos\sandbox-application -Language node -Force
+```
+
+Generate for GitHub Enterprise Server reusable workflows:
+
+```powershell
+.\scripts\new-security-workflow.ps1 -RepositoryPath C:\Users\klee2\repos\sandbox-application -Language node -PlatformOrg <org> -PlatformRepo platform-workflows -WorkflowRef v1
+```
 
 ## Documentation Hub
 

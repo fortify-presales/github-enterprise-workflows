@@ -12,4 +12,4 @@ java -cp target/ref-app-java-0.1.0.jar com.example.App
 ## Notes
 
 - Security workflow is in `.github/workflows/security.yml`.
-- Set `vars.SONATYPE_APPLICATION_ID` and Fortify credentials/secrets before running scans.
+- Set `vars.LIFECYCLE_APPLICATIONS_ID` and Fortify credentials/secrets before running scans.

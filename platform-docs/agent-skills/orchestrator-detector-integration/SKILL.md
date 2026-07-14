@@ -22,7 +22,7 @@ Integrate centralized Fortify and Sonatype reusable workflows into repositories 
 - service
 - path
 - language
-- sonatype_application_id
+- lifecycle_application_id
 
 Optional fields:
 

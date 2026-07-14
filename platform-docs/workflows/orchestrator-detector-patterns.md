@@ -19,7 +19,7 @@ Expected matrix contract:
       "service": "orders",
       "path": "services/orders",
       "language": "node",
-      "sonatype_application_id": "orders-app"
+      "lifecycle_application_id": "orders-app"
     }
   ]
 }
@@ -68,7 +68,7 @@ Matrix item fields:
 - `path`
 - `language`
 - `scan_targets`
-- `sonatype_application_id`
+- `lifecycle_application_id`
 
 ## Fit Guidance
 

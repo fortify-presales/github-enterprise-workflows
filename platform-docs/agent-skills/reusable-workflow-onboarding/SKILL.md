@@ -41,7 +41,7 @@ Onboard a repository to centralized reusable workflows for Fortify and Sonatype 
 	- service
 	- path
 	- language
-	- sonatype_application_id
+	- lifecycle_application_id
 
 ## Output
 

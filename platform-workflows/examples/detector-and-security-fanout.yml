@@ -54,25 +54,25 @@ jobs:
             service=""
             path=""
             language=""
-            sonatype_application_id=""
+            lifecycle_application_id=""
 
             if [[ "$f" == services/*/* ]]; then
               svc="$(echo "$f" | cut -d'/' -f2)"
               service="$svc"
               path="services/$svc"
               language="node"
-              sonatype_application_id="$svc-app"
+              lifecycle_application_id="$svc-app"
             elif [[ "$f" == apps/*/* ]]; then
               svc="$(echo "$f" | cut -d'/' -f2)"
               service="$svc"
               path="apps/$svc"
               language="node"
-              sonatype_application_id="$svc-app"
+              lifecycle_application_id="$svc-app"
             fi
 
             if [ -n "$service" ] && [ -z "${seen[$service]+x}" ]; then
               seen[$service]=1
-              includes+=("{\"service\":\"$service\",\"path\":\"$path\",\"language\":\"$language\",\"sonatype_application_id\":\"$sonatype_application_id\"}")
+              includes+=("{\"service\":\"$service\",\"path\":\"$path\",\"language\":\"$language\",\"lifecycle_application_id\":\"$lifecycle_application_id\"}")
             fi
           done < changed_files.txt
 
@@ -114,7 +114,7 @@ jobs:
         include: ${{ fromJson(needs.detect.outputs.matrix).include }}
     uses: fortify-presales/platform-workflows/.github/workflows/reusable-sonatype-sca.yml@v1
     with:
-      application_id: ${{ matrix.sonatype_application_id }}
+      application_id: ${{ matrix.lifecycle_application_id }}
       scan_targets: ${{ format('{0}/package.json {0}/package-lock.json', matrix.path) }}
     secrets: inherit
 
