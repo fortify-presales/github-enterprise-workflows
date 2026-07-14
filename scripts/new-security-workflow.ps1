@@ -147,7 +147,7 @@ jobs:
     sonatype:
         uses: __WORKFLOW_OWNER__/__WORKFLOW_REPO__/.github/workflows/reusable-sonatype-sca.yml@__WORKFLOW_REF__
         with:
-            application_id: ${{ vars.__SONATYPE_APP_VAR__ != '' && vars.__SONATYPE_APP_VAR__ || github.repository }}
+            application_id: ${{ vars.__SONATYPE_APP_VAR__ != '' && vars.__SONATYPE_APP_VAR__ || github.event.repository.name }}
             organization_id: ${{ vars.LIFECYCLE_ORGANIZATION_ID != '' && vars.LIFECYCLE_ORGANIZATION_ID || github.repository_owner }}
             create_application_if_missing: true
             scan_targets: __SCAN_TARGETS__

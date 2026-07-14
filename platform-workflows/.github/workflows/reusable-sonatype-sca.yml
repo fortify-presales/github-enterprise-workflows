@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       application_id:
-        description: Sonatype Lifecycle application public ID (optional; defaults to org/repo when empty)
+        description: Sonatype Lifecycle application public ID (optional; defaults to repository name when empty)
         required: false
         type: string
         default: ""
@@ -61,9 +61,10 @@ jobs:
           INPUT_ORGANIZATION_ID: ${{ inputs.organization_id }}
           INPUT_CREATE_APPLICATION: ${{ inputs.create_application_if_missing }}
           REPOSITORY: ${{ github.repository }}
+          REPOSITORY_NAME: ${{ github.event.repository.name }}
           REPOSITORY_OWNER: ${{ github.repository_owner }}
         run: |
-          $appId = if ([string]::IsNullOrWhiteSpace($env:INPUT_APPLICATION_ID)) { $env:REPOSITORY } else { $env:INPUT_APPLICATION_ID }
+          $appId = if ([string]::IsNullOrWhiteSpace($env:INPUT_APPLICATION_ID)) { $env:REPOSITORY_NAME } else { $env:INPUT_APPLICATION_ID }
           $orgId = if ([string]::IsNullOrWhiteSpace($env:INPUT_ORGANIZATION_ID)) { $env:REPOSITORY_OWNER } else { $env:INPUT_ORGANIZATION_ID }
 
           "application_id=$appId" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append

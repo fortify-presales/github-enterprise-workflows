@@ -238,7 +238,7 @@ Minimum shared configuration for most examples:
   - Variable (optional): `LIFECYCLE_ORGANIZATION_ID` (recommended if Sonatype org identifier differs from GitHub org/repository owner)
   - Secret: `LIFECYCLE_USERNAME`
   - Secret: `LIFECYCLE_PASSWORD`
-  - Variable (optional): `LIFECYCLE_APPLICATION_ID` (defaults to org/repo (`github.repository`) when unset)
+  - Variable (optional): `LIFECYCLE_APPLICATION_ID` (defaults to the repository name when unset)
 
 ## Organization-Level Configuration (GitHub.com And GHES)
 

@@ -26,7 +26,7 @@ jobs:
   sonatype:
     uses: fortify-presales/platform-workflows/.github/workflows/reusable-sonatype-sca.yml@v1
     with:
-      application_id: ${{ vars.LIFECYCLE_APPLICATION_ID != '' && vars.LIFECYCLE_APPLICATION_ID || github.repository }}
+      application_id: ${{ vars.LIFECYCLE_APPLICATION_ID != '' && vars.LIFECYCLE_APPLICATION_ID || github.event.repository.name }}
       organization_id: ${{ vars.LIFECYCLE_ORGANIZATION_ID != '' && vars.LIFECYCLE_ORGANIZATION_ID || github.repository_owner }}
       create_application_if_missing: true
       scan_targets: package.json package-lock.json
