@@ -1,0 +1,106 @@
+name: Reusable Security Gate
+
+on:
+  workflow_call:
+    inputs:
+      required_statuses_csv:
+        description: Comma-separated required tool statuses, for example Snyk=success,CodeQL=success
+        required: true
+        type: string
+      allowed_statuses_csv:
+        description: Comma-separated allowed status values
+        required: false
+        type: string
+        default: "success"
+      allow_exemption:
+        description: Allow manual exemption
+        required: false
+        type: boolean
+        default: false
+      exemption_ticket:
+        description: Change ticket for exemption
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluate gate
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          allowed_statuses="$(echo "${{ inputs.allowed_statuses_csv }}" | tr '[:upper:]' '[:lower:]')"
+          failures=0
+          evaluated=0
+
+          is_allowed_status() {
+            local status="$1"
+            local list=",${allowed_statuses},"
+            [[ "$list" == *",${status},"* ]]
+          }
+
+          trim() {
+            local value="$1"
+            value="${value#"${value%%[![:space:]]*}"}"
+            value="${value%"${value##*[![:space:]]}"}"
+            echo "$value"
+          }
+
+          evaluate_status() {
+            local name="$1"
+            local raw_status="$2"
+            local status
+            status="$(echo "$raw_status" | tr '[:upper:]' '[:lower:]')"
+
+            if [[ -z "$status" ]]; then
+              return 0
+            fi
+
+            evaluated=$((evaluated + 1))
+            if ! is_allowed_status "$status"; then
+              echo "$name status is failing: $raw_status"
+              failures=$((failures + 1))
+            else
+              echo "$name status is allowed: $raw_status"
+            fi
+          }
+
+          IFS=',' read -ra extra_pairs <<< "${{ inputs.required_statuses_csv }}"
+          extra_index=1
+          for pair in "${extra_pairs[@]}"; do
+            pair="$(trim "$pair")"
+            [[ -z "$pair" ]] && continue
+
+            if [[ "$pair" == *"="* ]]; then
+              tool_name="$(trim "${pair%%=*}")"
+              tool_status="$(trim "${pair#*=}")"
+            else
+              tool_name="Tool ${extra_index}"
+              tool_status="$pair"
+            fi
+
+            [[ -z "$tool_name" ]] && tool_name="Tool ${extra_index}"
+            evaluate_status "$tool_name" "$tool_status"
+            extra_index=$((extra_index + 1))
+          done
+
+          if [[ "$evaluated" -eq 0 ]]; then
+            echo "No tool statuses were provided to evaluate."
+            failures=$((failures + 1))
+          fi
+
+          if [[ "$failures" -gt 0 ]]; then
+            if [[ "${{ inputs.allow_exemption }}" != "true" || -z "${{ inputs.exemption_ticket }}" ]]; then
+              echo "Security gate failed with $failures blocking status condition(s)."
+              exit 1
+            fi
+            echo "Security gate exemption applied with ticket: ${{ inputs.exemption_ticket }}"
+          fi
+
+          echo "Security gate passed"

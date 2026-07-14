@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=https://fortify.github.io/fcli/schemas/action/fcli-action-schema-2.9.0.json
+$schema: https://fortify.github.io/fcli/schemas/action/fcli-action-schema-2.9.0.json
+
+author: Fortify Presales
+usage:
+  header: Enterprise policy check for FoD releases
+  description: |
+    Fails if new or reopened High/Critical vulnerabilities are present.
+
+config:
+  rest.target.default: fod
+
+cli.options:
+  release:
+    names: --release, --rel
+    description: Required release id or app[:microservice]:release
+
+steps:
+  - var.set:
+      rel: ${#fod.release(cli.release)}
+      blockingIssues: null
+  - rest.call:
+      vulnerabilities:
+        uri: /api/v3/releases/${rel.releaseId}/vulnerabilities
+        type: paged
+        query:
+          includeFixed: true
+        records.for-each:
+          record.var-name: issue
+          if: ${issue.status!=null && (issue.status.equalsIgnoreCase('New') || issue.status.toLowerCase().startsWith('reopen')) && (issue.severityString=='Critical' || issue.severityString=='High')}
+          do:
+            - var.set:
+                blockingIssues..: "${issue.status} ${issue.severityString} - ${issue.category}"
+  - var.set:
+      blockingIssueCount: "${blockingIssues==null ? 0 : blockingIssues.size()}"
+  - check:
+      noNewOrReopenCriticalOrHigh:
+        display-name: No New or Reopen Critical or High issues
+        fail.if: ${blockingIssueCount > 0}

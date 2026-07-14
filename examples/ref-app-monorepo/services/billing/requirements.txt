@@ -1,0 +1,1 @@
+# Minimal python dependency file for scan targets

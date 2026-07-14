@@ -1,0 +1,214 @@
+name: Reusable Fortify FoD
+
+on:
+  workflow_call:
+    inputs:
+      language:
+        description: Language or build stack identifier
+        required: true
+        type: string
+      build_strategy:
+        description: Build mode, one of auto, custom, none
+        required: false
+        type: string
+        default: auto
+      java_version:
+        description: Java version for setup-java when language requires Java
+        required: false
+        type: string
+        default: "17"
+      node_version:
+        description: Node.js version for setup-node when language is node
+        required: false
+        type: string
+        default: "20"
+      python_version:
+        description: Python version for setup-python when language is python
+        required: false
+        type: string
+        default: "3.12"
+      dotnet_version:
+        description: Dotnet SDK version for setup-dotnet when language is dotnet
+        required: false
+        type: string
+        default: "8.0.x"
+      build_command:
+        description: Build command used when build_strategy is custom
+        required: false
+        type: string
+        default: ""
+      install_dependencies:
+        description: Install dependencies before build when supported
+        required: false
+        type: boolean
+        default: true
+      source_dir:
+        description: Source directory for packaging and scanning
+        required: false
+        type: string
+        default: "."
+      do_setup:
+        description: Create or configure FoD release if needed
+        required: false
+        type: boolean
+        default: true
+      do_sca_scan:
+        description: Enable FoD SCA in SAST flow when available
+        required: false
+        type: boolean
+        default: false
+      do_wait:
+        description: Wait for scan completion
+        required: false
+        type: boolean
+        default: true
+      do_check_policy:
+        description: Run policy check stage
+        required: false
+        type: boolean
+        default: true
+      check_policy_action:
+        description: Optional custom fcli policy action path
+        required: false
+        type: string
+        default: ""
+      check_policy_extra_opts:
+        description: Extra options for policy action
+        required: false
+        type: string
+        default: ""
+      runner:
+        description: Runner label
+        required: false
+        type: string
+        default: ubuntu-latest
+      debug:
+        description: Enable debug artifacts
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: write
+
+jobs:
+  fortify:
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        if: ${{ inputs.build_strategy != 'none' && (inputs.language == 'java' || inputs.language == 'gradle' || inputs.language == 'maven') }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ inputs.java_version }}
+
+      - name: Setup Node
+        if: ${{ inputs.build_strategy != 'none' && inputs.language == 'node' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+
+      - name: Setup Python
+        if: ${{ inputs.build_strategy != 'none' && inputs.language == 'python' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python_version }}
+
+      - name: Setup Dotnet
+        if: ${{ inputs.build_strategy != 'none' && inputs.language == 'dotnet' }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ inputs.dotnet_version }}
+
+      - name: Build project (auto)
+        if: ${{ inputs.build_strategy == 'auto' }}
+        shell: bash
+        working-directory: ${{ inputs.source_dir }}
+        run: |
+          set -euo pipefail
+
+          case "${{ inputs.language }}" in
+            node)
+              if [ "${{ inputs.install_dependencies }}" = "true" ]; then
+                if [ -f package-lock.json ]; then
+                  npm ci
+                elif [ -f yarn.lock ]; then
+                  yarn install --frozen-lockfile
+                elif [ -f pnpm-lock.yaml ]; then
+                  npm i -g pnpm
+                  pnpm install --frozen-lockfile
+                elif [ -f package.json ]; then
+                  npm install
+                fi
+              fi
+              if [ -f package.json ]; then
+                npm run build --if-present
+              fi
+              ;;
+            python)
+              if [ "${{ inputs.install_dependencies }}" = "true" ]; then
+                if [ -f requirements.txt ]; then
+                  python -m pip install -r requirements.txt
+                elif [ -f pyproject.toml ]; then
+                  python -m pip install .
+                fi
+              fi
+              ;;
+            maven)
+              if [ "${{ inputs.install_dependencies }}" = "true" ] && [ -f pom.xml ]; then
+                mvn -B -DskipTests package
+              fi
+              ;;
+            java|gradle)
+              if [ -f ./gradlew ]; then
+                chmod +x ./gradlew
+                ./gradlew build -x test
+              elif [ -f build.gradle ] || [ -f build.gradle.kts ]; then
+                gradle build -x test
+              fi
+              ;;
+            dotnet)
+              if ls *.sln >/dev/null 2>&1 || ls *.csproj >/dev/null 2>&1; then
+                dotnet restore
+                dotnet build --configuration Release --no-restore
+              fi
+              ;;
+            *)
+              echo "No auto build rule for language '${{ inputs.language }}'."
+              ;;
+          esac
+
+      - name: Build project (custom)
+        if: ${{ inputs.build_strategy == 'custom' && inputs.build_command != '' }}
+        shell: bash
+        working-directory: ${{ inputs.source_dir }}
+        run: ${{ inputs.build_command }}
+
+      - name: Validate build strategy
+        if: ${{ inputs.build_strategy == 'custom' && inputs.build_command == '' }}
+        shell: bash
+        run: |
+          echo "build_strategy is custom but build_command is empty"
+          exit 1
+
+      - name: Run Fortify FoD reusable flow
+        uses: fortify/github-action/with-ghes-artifacts@v3
+        with:
+          debug: ${{ inputs.debug }}
+        env:
+          FOD_URL: ${{ vars.FOD_URL }}
+          FOD_CLIENT_ID: ${{ secrets.FOD_CLIENT_ID }}
+          FOD_CLIENT_SECRET: ${{ secrets.FOD_CLIENT_SECRET }}
+          SOURCE_DIR: ${{ inputs.source_dir }}
+          DO_SETUP: ${{ inputs.do_setup }}
+          DO_SAST_SCAN: true
+          DO_SCA_SCAN: ${{ inputs.do_sca_scan }}
+          DO_WAIT: ${{ inputs.do_wait }}
+          DO_CHECK_POLICY: ${{ inputs.do_check_policy }}
+          CHECK_POLICY_ACTION: ${{ inputs.check_policy_action }}
+          CHECK_POLICY_EXTRA_OPTS: ${{ inputs.check_policy_extra_opts }}

@@ -1,0 +1,5 @@
+[project]
+name = "ref-app-python"
+version = "0.1.0"
+description = "Minimal Python example for platform workflows"
+requires-python = ">=3.12"

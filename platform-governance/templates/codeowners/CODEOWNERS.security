@@ -1,0 +1,8 @@
+# Require platform/security review for workflow changes
+.github/workflows/* @fortify-presales/platform-team @fortify-presales/security-team
+
+# Protect shared policy actions
+platform-actions/actions/* @fortify-presales/platform-team @fortify-presales/security-team
+
+# Protect governance automation
+platform-governance/* @fortify-presales/platform-team

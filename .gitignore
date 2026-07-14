@@ -1,0 +1,5 @@
+# Local reference samples not intended for source control
+sample_actions/
+sample_workflows/
+
+.fortify

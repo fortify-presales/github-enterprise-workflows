@@ -1,0 +1,19 @@
+name: Repository Compliance
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 2 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  compliance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run compliance checks
+        shell: pwsh
+        run: |
+          ./scripts/check-compliance.ps1 -RootPath .

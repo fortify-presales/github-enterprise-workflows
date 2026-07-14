@@ -1,0 +1,155 @@
+name: Security
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: write
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine change range
+        id: range
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+            head="${{ github.event.pull_request.head.sha }}"
+          else
+            base="${{ github.event.before }}"
+            head="${{ github.sha }}"
+          fi
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          echo "head=$head" >> "$GITHUB_OUTPUT"
+
+      - name: Build changed-service matrix
+        id: set-matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git diff --name-only "${{ steps.range.outputs.base }}" "${{ steps.range.outputs.head }}" > changed_files.txt || true
+
+          detect_language() {
+            local service_path="$1"
+            if [ -f "$service_path/pom.xml" ]; then
+              echo "maven"
+            elif [ -f "$service_path/requirements.txt" ] || [ -f "$service_path/pyproject.toml" ]; then
+              echo "python"
+            elif [ -f "$service_path/package.json" ]; then
+              echo "node"
+            else
+              echo "node"
+            fi
+          }
+
+          detect_scan_targets() {
+            local service_path="$1"
+            local language="$2"
+            case "$language" in
+              maven)
+                echo "$service_path/pom.xml"
+                ;;
+              python)
+                echo "$service_path/requirements.txt $service_path/pyproject.toml"
+                ;;
+              node|*)
+                echo "$service_path/package.json $service_path/package-lock.json"
+                ;;
+            esac
+          }
+
+          declare -A seen
+          includes=()
+
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+
+            service=""
+            path=""
+
+            if [[ "$f" == services/*/* ]]; then
+              svc="$(echo "$f" | cut -d'/' -f2)"
+              service="$svc"
+              path="services/$svc"
+            elif [[ "$f" == apps/*/* ]]; then
+              svc="$(echo "$f" | cut -d'/' -f2)"
+              service="$svc"
+              path="apps/$svc"
+            fi
+
+            if [ -n "$service" ] && [ -z "${seen[$service]+x}" ] && [ -d "$path" ]; then
+              seen[$service]=1
+              language="$(detect_language "$path")"
+              scan_targets="$(detect_scan_targets "$path" "$language")"
+              sonatype_application_id="${{ vars.SONATYPE_APPLICATION_ID_PREFIX }}-$service"
+
+              includes+=("{\"service\":\"$service\",\"path\":\"$path\",\"language\":\"$language\",\"scan_targets\":\"$scan_targets\",\"sonatype_application_id\":\"$sonatype_application_id\"}")
+            fi
+          done < changed_files.txt
+
+          if [ "${#includes[@]}" -eq 0 ]; then
+            echo "matrix<<EOF" >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          printf '{"include":[%s]}' "$(IFS=,; echo "${includes[*]}")" > matrix.json
+          echo "matrix<<EOF" >> "$GITHUB_OUTPUT"
+          cat matrix.json >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+  fortify:
+    name: Fortify (${{ matrix.service }})
+    needs: detect
+    if: ${{ needs.detect.outputs.matrix != '' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.detect.outputs.matrix).include }}
+    uses: fortify-presales/platform-workflows/.github/workflows/reusable-fortify-fod.yml@v1
+    with:
+      language: ${{ matrix.language }}
+      source_dir: ${{ matrix.path }}
+      build_strategy: auto
+      do_sca_scan: true
+      do_check_policy: true
+    secrets: inherit
+
+  sonatype:
+    name: Sonatype (${{ matrix.service }})
+    needs: detect
+    if: ${{ needs.detect.outputs.matrix != '' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.detect.outputs.matrix).include }}
+    uses: fortify-presales/platform-workflows/.github/workflows/reusable-sonatype-sca.yml@v1
+    with:
+      application_id: ${{ matrix.sonatype_application_id }}
+      scan_targets: ${{ matrix.scan_targets }}
+    secrets: inherit
+
+  gate:
+    name: Security Gate
+    needs: [fortify, sonatype]
+    if: ${{ always() && !cancelled() }}
+    uses: fortify-presales/platform-workflows/.github/workflows/reusable-security-gate.yml@v1
+    with:
+      required_statuses_csv: >-
+        Fortify=${{ needs.fortify.result }},Sonatype=${{ needs.sonatype.result }}

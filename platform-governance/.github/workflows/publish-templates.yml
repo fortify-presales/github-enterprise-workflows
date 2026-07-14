@@ -1,0 +1,76 @@
+name: Publish Governance Templates
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_repository:
+        description: "Owner/repository to receive templates"
+        required: true
+        type: string
+      target_branch:
+        description: "Branch in target repository"
+        required: false
+        default: "main"
+        type: string
+      target_path:
+        description: "Path inside target repository"
+        required: false
+        default: "."
+        type: string
+      dry_run:
+        description: "Preview only; do not push"
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Checkout target repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.target_repository }}
+          ref: ${{ inputs.target_branch }}
+          token: ${{ secrets.TEMPLATE_SYNC_TOKEN }}
+          path: target-repo
+
+      - name: Sync templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEST="target-repo/${{ inputs.target_path }}/templates"
+          mkdir -p "$DEST"
+          rm -rf "$DEST"/*
+          cp -R templates/. "$DEST"/
+
+      - name: Show target changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C target-repo status --short
+
+      - name: Commit template updates
+        if: ${{ !inputs.dry_run }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C target-repo config user.name "platform-governance-bot"
+          git -C target-repo config user.email "platform-governance-bot@users.noreply.github.com"
+          git -C target-repo add .
+          if git -C target-repo diff --cached --quiet; then
+            echo "No template changes to commit."
+            exit 0
+          fi
+          git -C target-repo commit -m "chore: sync governance templates"
+          git -C target-repo push origin "${{ inputs.target_branch }}"
+
+      - name: Dry run summary
+        if: ${{ inputs.dry_run }}
+        run: echo "Dry run complete. No push performed."

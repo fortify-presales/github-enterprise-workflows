@@ -1,0 +1,9 @@
+{
+  "name": "orders-service",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "node -e \"console.log('orders build ok')\"",
+    "start": "node src/index.js"
+  }
+}

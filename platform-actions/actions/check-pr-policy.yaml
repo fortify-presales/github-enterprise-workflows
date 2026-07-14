@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=https://fortify.github.io/fcli/schemas/action/fcli-action-schema-2.9.0.json
+$schema: https://fortify.github.io/fcli/schemas/action/fcli-action-schema-2.9.0.json
+
+author: Fortify Presales
+usage:
+  header: PR policy check for FoD releases
+  description: |
+    PR-focused policy checks for New High/Critical findings.
+
+config:
+  rest.target.default: fod
+
+cli.options:
+  release:
+    names: --release, --rel
+    description: Required release id or app[:microservice]:release
+  scan-types:
+    names: --scan-types, --scan-type
+    description: Scan types to check
+    type: array
+    required: false
+    default:
+      - Static
+
+steps:
+  - var.set:
+      rel: ${#fod.release(cli.release)}
+      blockingIssues: null
+  - rest.call:
+      vulnerabilities:
+        uri: /api/v3/releases/${rel.releaseId}/vulnerabilities
+        type: paged
+        query:
+          includeFixed: true
+        records.for-each:
+          record.var-name: issue
+          if: ${issue.status=='New' && (issue.severityString=='Critical' || issue.severityString=='High')}
+          do:
+            - var.set:
+                blockingIssues..: "${issue.scantype} ${issue.status} ${issue.severityString} - ${issue.category}"
+  - var.set:
+      blockingIssueCount: "${blockingIssues==null ? 0 : blockingIssues.size()}"
+  - check:
+      noNewCriticalOrHigh:
+        display-name: No New Critical or High issues overall
+        fail.if: ${blockingIssueCount > 0}
