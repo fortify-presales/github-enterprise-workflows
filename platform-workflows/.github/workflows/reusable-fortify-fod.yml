@@ -52,8 +52,18 @@ on:
         required: false
         type: string
         default: ""
+      list_source_files:
+        description: List files in source_dir before running Fortify scan
+        required: false
+        type: boolean
+        default: false
       do_setup:
         description: Create or configure FoD release if needed
+        required: false
+        type: boolean
+        default: true
+      do_sast_scan:
+        description: Enable FoD SAST scan start
         required: false
         type: boolean
         default: true
@@ -211,6 +221,15 @@ jobs:
           echo "build_strategy is custom but build_command is empty"
           exit 1
 
+      - name: List source files before scan
+        if: ${{ inputs.list_source_files }}
+        shell: bash
+        working-directory: ${{ inputs.source_dir }}
+        run: |
+          set -euo pipefail
+          echo "Listing files under $(pwd)"
+          find . -type f | sort
+
       - name: Run Fortify FoD reusable flow
         uses: fortify/github-action/without-artifacts@v3
         with:
@@ -221,12 +240,12 @@ jobs:
           FOD_CLIENT_SECRET: ${{ secrets.FOD_CLIENT_SECRET }}
           SOURCE_DIR: ${{ inputs.source_dir }}
           PACKAGE_EXTRA_OPTS: ${{ inputs.package_extra_opts }}
-          DO_SETUP: ${{ inputs.do_setup }}
+          DO_SETUP: ${{ inputs.do_setup == true && 'true' || 'false' }}
           SAST_ASSESSMENT_TYPE: ${{ inputs.sast_assessment_type }}
-          DO_SAST_SCAN: true
-          DO_SCA_SCAN: ${{ inputs.do_sca_scan }}
-          DO_AVIATOR_AUDIT: ${{ inputs.do_aviator_audit }}
-          DO_WAIT: ${{ inputs.do_wait }}
-          DO_CHECK_POLICY: ${{ inputs.do_check_policy }}
+          DO_SAST_SCAN: ${{ inputs.do_sast_scan == true && 'true' || 'false' }}
+          DO_SCA_SCAN: ${{ inputs.do_sca_scan == true && 'true' || 'false' }}
+          DO_AVIATOR_AUDIT: ${{ inputs.do_aviator_audit == true && 'true' || 'false' }}
+          DO_WAIT: ${{ inputs.do_wait == true && 'true' || 'false' }}
+          DO_CHECK_POLICY: ${{ inputs.do_check_policy == true && 'true' || 'false' }}
           CHECK_POLICY_ACTION: ${{ inputs.check_policy_action }}
           CHECK_POLICY_EXTRA_OPTS: ${{ inputs.check_policy_extra_opts }}

@@ -10,6 +10,7 @@ Provide one centrally managed Fortify FoD reusable workflow contract that suppor
 - `build_command`: Optional build command run before packaging/scan
 - `source_dir`: Scan source directory
 - `package_extra_opts`: Extra ScanCentral package options
+- `list_source_files`: Print file inventory under `source_dir` before scan (default `false`)
 - `fod_release_override`: Explicit FoD release override
 - `copy_from_release`: Parent release for setup inheritance
 - `do_setup`: Enable release setup flow
