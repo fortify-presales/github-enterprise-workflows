@@ -26,7 +26,6 @@ Provide a reusable Sonatype SCA workflow with optional central configuration and
 ## Optional Environment Variables
 
 - `LIFECYCLE_ORGANIZATION_ID` (recommended for enterprises where Sonatype org IDs differ from GitHub organization names)
-- `LIFECYCLE_CSRF_TOKEN` (optional, if your Sonatype tenant requires `X-CSRF-TOKEN` on REST calls)
 
 ## Required Credentials
 

@@ -18,6 +18,8 @@ jobs:
       language: dotnet
       source_dir: ./src/PlatformExampleDotnet
       build_strategy: auto
+      sast_assessment_type: Static Assessment
+      do_aviator_audit: false
       package_extra_opts: -bt dotnet -bf src/PlatformExampleDotnet/PlatformExampleDotnet.csproj
       do_sca_scan: true
       do_check_policy: true

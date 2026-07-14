@@ -127,6 +127,8 @@ jobs:
       language: ${{ matrix.language }}
       source_dir: ${{ matrix.path }}
       build_strategy: auto
+      sast_assessment_type: Static Assessment
+      do_aviator_audit: false
       package_extra_opts: -bt none
       do_sca_scan: true
       do_check_policy: true

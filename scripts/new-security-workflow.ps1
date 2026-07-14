@@ -140,6 +140,8 @@ jobs:
             language: __LANGUAGE__
             source_dir: __SOURCE_DIR__
             build_strategy: auto
+            sast_assessment_type: Static Assessment
+            do_aviator_audit: false
             do_sca_scan: true
             do_check_policy: true
         secrets: inherit

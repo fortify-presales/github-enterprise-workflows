@@ -57,7 +57,6 @@ jobs:
           IQ_SERVER_URL: ${{ vars.LIFECYCLE_SERVER_URL }}
           IQ_USERNAME: ${{ secrets.LIFECYCLE_USERNAME }}
           IQ_PASSWORD: ${{ secrets.LIFECYCLE_PASSWORD }}
-          SONATYPE_CSRF_TOKEN: ${{ secrets.LIFECYCLE_CSRF_TOKEN }}
           INPUT_APPLICATION_ID: ${{ inputs.application_id }}
           INPUT_ORGANIZATION_ID: ${{ inputs.organization_id }}
           INPUT_CREATE_APPLICATION: ${{ inputs.create_application_if_missing }}
@@ -91,9 +90,6 @@ jobs:
           $headers = @{
             Authorization = "Basic $authToken"
             Accept = "application/json"
-          }
-          if (-not [string]::IsNullOrWhiteSpace($env:SONATYPE_CSRF_TOKEN)) {
-            $headers['X-CSRF-TOKEN'] = $env:SONATYPE_CSRF_TOKEN
           }
 
           $encodedOrgName = [uri]::EscapeDataString($orgName)

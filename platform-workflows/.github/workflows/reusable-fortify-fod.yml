@@ -62,6 +62,16 @@ on:
         required: false
         type: boolean
         default: false
+      do_aviator_audit:
+        description: Enable Fortify Aviator Audit after SAST scan
+        required: false
+        type: boolean
+        default: false
+      sast_assessment_type:
+        description: FoD SAST assessment type
+        required: false
+        type: string
+        default: Static Assessment
       do_wait:
         description: Wait for scan completion
         required: false
@@ -212,8 +222,10 @@ jobs:
           SOURCE_DIR: ${{ inputs.source_dir }}
           PACKAGE_EXTRA_OPTS: ${{ inputs.package_extra_opts }}
           DO_SETUP: ${{ inputs.do_setup }}
+          SAST_ASSESSMENT_TYPE: ${{ inputs.sast_assessment_type }}
           DO_SAST_SCAN: true
           DO_SCA_SCAN: ${{ inputs.do_sca_scan }}
+          DO_AVIATOR_AUDIT: ${{ inputs.do_aviator_audit }}
           DO_WAIT: ${{ inputs.do_wait }}
           DO_CHECK_POLICY: ${{ inputs.do_check_policy }}
           CHECK_POLICY_ACTION: ${{ inputs.check_policy_action }}
