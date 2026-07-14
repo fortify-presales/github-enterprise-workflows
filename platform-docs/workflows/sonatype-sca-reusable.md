@@ -7,7 +7,7 @@ Provide a reusable Sonatype SCA workflow with optional central configuration and
 ## Inputs
 
 - `application_id`: Sonatype application public ID (optional; defaults to the repository name when empty)
-- `organization_id`: Sonatype organization ID/public ID (optional; defaults to repository owner `github.repository_owner`)
+- `organization_id`: Sonatype organization name/public ID (optional; defaults to repository owner `github.repository_owner`)
 - `create_application_if_missing`: If true, reusable workflow checks whether the application exists and creates it under the resolved organization when missing
 - `stage`: Sonatype stage, such as `build` or `release`
 - `scan_targets`: Paths or files for evaluation
@@ -26,6 +26,7 @@ Provide a reusable Sonatype SCA workflow with optional central configuration and
 ## Optional Environment Variables
 
 - `LIFECYCLE_ORGANIZATION_ID` (recommended for enterprises where Sonatype org IDs differ from GitHub organization names)
+- `LIFECYCLE_CSRF_TOKEN` (optional, if your Sonatype tenant requires `X-CSRF-TOKEN` on REST calls)
 
 ## Required Credentials
 

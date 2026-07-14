@@ -235,7 +235,8 @@ Minimum shared configuration for most examples:
   - Secret: `FOD_CLIENT_SECRET`
 - Sonatype:
   - Variable: `LIFECYCLE_SERVER_URL`
-  - Variable (optional): `LIFECYCLE_ORGANIZATION_ID` (recommended if Sonatype org identifier differs from GitHub org/repository owner)
+  - Variable (optional): `LIFECYCLE_ORGANIZATION_ID` (recommended if Sonatype org name differs from GitHub org/repository owner)
+  - Secret (optional): `LIFECYCLE_CSRF_TOKEN` (if your Sonatype tenant requires `X-CSRF-TOKEN` for REST calls)
   - Secret: `LIFECYCLE_USERNAME`
   - Secret: `LIFECYCLE_PASSWORD`
   - Variable (optional): `LIFECYCLE_APPLICATION_ID` (defaults to the repository name when unset)

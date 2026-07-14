@@ -57,6 +57,7 @@ jobs:
           IQ_SERVER_URL: ${{ vars.LIFECYCLE_SERVER_URL }}
           IQ_USERNAME: ${{ secrets.LIFECYCLE_USERNAME }}
           IQ_PASSWORD: ${{ secrets.LIFECYCLE_PASSWORD }}
+          SONATYPE_CSRF_TOKEN: ${{ secrets.LIFECYCLE_CSRF_TOKEN }}
           INPUT_APPLICATION_ID: ${{ inputs.application_id }}
           INPUT_ORGANIZATION_ID: ${{ inputs.organization_id }}
           INPUT_CREATE_APPLICATION: ${{ inputs.create_application_if_missing }}
@@ -65,10 +66,10 @@ jobs:
           REPOSITORY_OWNER: ${{ github.repository_owner }}
         run: |
           $appId = if ([string]::IsNullOrWhiteSpace($env:INPUT_APPLICATION_ID)) { $env:REPOSITORY_NAME } else { $env:INPUT_APPLICATION_ID }
-          $orgId = if ([string]::IsNullOrWhiteSpace($env:INPUT_ORGANIZATION_ID)) { $env:REPOSITORY_OWNER } else { $env:INPUT_ORGANIZATION_ID }
+          $orgName = if ([string]::IsNullOrWhiteSpace($env:INPUT_ORGANIZATION_ID)) { $env:REPOSITORY_OWNER } else { $env:INPUT_ORGANIZATION_ID }
 
           "application_id=$appId" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "organization_id=$orgId" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "organization_name=$orgName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
           if ($env:INPUT_CREATE_APPLICATION -ne "true") {
             Write-Host "Skipping Sonatype application auto-create; create_application_if_missing=false"
@@ -81,7 +82,7 @@ jobs:
           if ([string]::IsNullOrWhiteSpace($env:IQ_USERNAME) -or [string]::IsNullOrWhiteSpace($env:IQ_PASSWORD)) {
             throw "LIFECYCLE_USERNAME and LIFECYCLE_PASSWORD are required when create_application_if_missing=true."
           }
-          if ([string]::IsNullOrWhiteSpace($orgId)) {
+          if ([string]::IsNullOrWhiteSpace($orgName)) {
             throw "organization_id could not be resolved. Set input organization_id or vars.LIFECYCLE_ORGANIZATION_ID conventionally in the caller."
           }
 
@@ -90,6 +91,43 @@ jobs:
           $headers = @{
             Authorization = "Basic $authToken"
             Accept = "application/json"
+          }
+          if (-not [string]::IsNullOrWhiteSpace($env:SONATYPE_CSRF_TOKEN)) {
+            $headers['X-CSRF-TOKEN'] = $env:SONATYPE_CSRF_TOKEN
+          }
+
+          $encodedOrgName = [uri]::EscapeDataString($orgName)
+          $orgLookupUri = "$baseUrl/api/v2/organizations?organizationName=$encodedOrgName"
+
+          try {
+            $orgLookupResponse = Invoke-RestMethod -Method Get -Uri $orgLookupUri -Headers $headers
+          } catch {
+            throw "Failed querying Sonatype organizations at $orgLookupUri. $($_.Exception.Message)"
+          }
+
+          $organizationId = $null
+          $organizations = @()
+          if ($orgLookupResponse -is [System.Array]) {
+            $organizations = @($orgLookupResponse)
+          } elseif ($null -ne $orgLookupResponse.organizations) {
+            $organizations = @($orgLookupResponse.organizations)
+          } elseif ($null -ne $orgLookupResponse.items) {
+            $organizations = @($orgLookupResponse.items)
+          } elseif ($null -ne $orgLookupResponse.id -or $null -ne $orgLookupResponse.name) {
+            $organizations = @($orgLookupResponse)
+          }
+
+          $matchedOrganization = $organizations | Where-Object { $_.name -eq $orgName } | Select-Object -First 1
+          if ($null -ne $matchedOrganization -and -not [string]::IsNullOrWhiteSpace($matchedOrganization.id)) {
+            $organizationId = $matchedOrganization.id
+          } elseif ($orgName -match '^[0-9a-fA-F]{32}$') {
+            $organizationId = $orgName
+          } elseif ($organizations.Count -gt 0 -and -not [string]::IsNullOrWhiteSpace($organizations[0].id)) {
+            $organizationId = $organizations[0].id
+          }
+
+          if ([string]::IsNullOrWhiteSpace($organizationId)) {
+            throw "Unable to resolve Sonatype organization ID for '$orgName'."
           }
 
           $encodedAppId = [uri]::EscapeDataString($appId)
@@ -124,24 +162,16 @@ jobs:
             Accept = "application/json"
             "Content-Type" = "application/json"
           }
-          $createPayloads = @(
-            @{ publicId = $appId; name = $appId; organizationId = $orgId },
-            @{ publicId = $appId; name = $appId; organization = @{ id = $orgId } },
-            @{ publicId = $appId; name = $appId; organizationPublicId = $orgId }
-          )
+          $createPayload = @{ publicId = $appId; name = $appId; organizationId = $organizationId }
 
-          foreach ($payload in $createPayloads) {
-            try {
-              $jsonBody = $payload | ConvertTo-Json -Depth 5
-              Invoke-RestMethod -Method Post -Uri $createUri -Headers $createHeaders -Body $jsonBody | Out-Null
-              Write-Host "Created Sonatype application '$appId' under organization '$orgId'"
-              return
-            } catch {
-              Write-Host "Create attempt failed with payload shape [$($payload.Keys -join ', ')]: $($_.Exception.Message)"
-            }
+          try {
+            $jsonBody = $createPayload | ConvertTo-Json -Depth 5
+            Invoke-RestMethod -Method Post -Uri $createUri -Headers $createHeaders -Body $jsonBody | Out-Null
+            Write-Host "Created Sonatype application '$appId' under organization '$orgName' ($organizationId)"
+            return
+          } catch {
+            throw "Unable to create Sonatype application '$appId' under organization '$orgName' ($organizationId). Verify organization access and application creation permission. $($_.Exception.Message)"
           }
-
-          throw "Unable to create Sonatype application '$appId'. Verify organization_id '$orgId' and credentials with application creation permission."
 
       - name: Run Sonatype evaluate
         id: run-iq-cli
