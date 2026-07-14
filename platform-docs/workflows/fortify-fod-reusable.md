@@ -17,6 +17,7 @@ Provide one centrally managed Fortify FoD reusable workflow contract that suppor
 - `do_sast_scan`: Enable SAST scan start
 - `do_sca_scan`: Enable SCA-in-SAST if licensed/configured
 - `do_aviator_audit`: Enable Fortify Aviator Audit stage (default `false`)
+- `do_aviator_remediations`: Enable Fortify Aviator remediations stage (default `false`)
 - `sast_assessment_type`: SAST assessment type passed to FoD (default `Static Assessment`)
 - `do_wait`: Wait for scan completion
 - `do_check_policy`: Run custom or built-in policy checks
@@ -59,6 +60,7 @@ Optional authentication mode:
   - `SAST_WAIT_EXTRA_OPTS`
 - Post-scan:
   - `DO_AVIATOR_AUDIT`
+  - `DO_AVIATOR_REMEDIATIONS`
   - `DO_RELEASE_SUMMARY`
   - `DO_CHECK_POLICY`
   - `CHECK_POLICY_ACTION`

@@ -77,6 +77,11 @@ on:
         required: false
         type: boolean
         default: false
+      do_aviator_remediations:
+        description: Enable Fortify Aviator remediations after SAST scan
+        required: false
+        type: boolean
+        default: false
       sast_assessment_type:
         description: FoD SAST assessment type
         required: false
@@ -238,13 +243,14 @@ jobs:
           FOD_URL: ${{ vars.FOD_URL }}
           FOD_CLIENT_ID: ${{ secrets.FOD_CLIENT_ID }}
           FOD_CLIENT_SECRET: ${{ secrets.FOD_CLIENT_SECRET }}
-          SOURCE_DIR: ${{ inputs.source_dir }}
+          SOURCE_DIR: ${{ format('{0}/{1}', github.workspace, inputs.source_dir) }}
           PACKAGE_EXTRA_OPTS: ${{ inputs.package_extra_opts }}
           DO_SETUP: ${{ inputs.do_setup == true && 'true' || 'false' }}
           SAST_ASSESSMENT_TYPE: ${{ inputs.sast_assessment_type }}
           DO_SAST_SCAN: ${{ inputs.do_sast_scan == true && 'true' || 'false' }}
           DO_SCA_SCAN: ${{ inputs.do_sca_scan == true && 'true' || 'false' }}
           DO_AVIATOR_AUDIT: ${{ inputs.do_aviator_audit == true && 'true' || 'false' }}
+          DO_AVIATOR_REMEDIATIONS: ${{ inputs.do_aviator_remediations == true && 'true' || 'false' }}
           DO_WAIT: ${{ inputs.do_wait == true && 'true' || 'false' }}
           DO_CHECK_POLICY: ${{ inputs.do_check_policy == true && 'true' || 'false' }}
           CHECK_POLICY_ACTION: ${{ inputs.check_policy_action }}
