@@ -4,9 +4,20 @@ on:
   workflow_call:
     inputs:
       application_id:
-        description: Sonatype Lifecycle application public ID
-        required: true
+        description: Sonatype Lifecycle application public ID (optional; defaults to org/repo when empty)
+        required: false
         type: string
+        default: ""
+      organization_id:
+        description: Sonatype Lifecycle organization ID or public ID (optional; defaults to repository owner)
+        required: false
+        type: string
+        default: ""
+      create_application_if_missing:
+        description: Create Sonatype Lifecycle application if it does not exist
+        required: false
+        type: boolean
+        default: false
       stage:
         description: Evaluation stage
         required: false
@@ -39,6 +50,98 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Resolve Sonatype org and application
+        id: resolve-sonatype-app
+        shell: pwsh
+        env:
+          IQ_SERVER_URL: ${{ vars.LIFECYCLE_SERVER_URL }}
+          IQ_USERNAME: ${{ secrets.LIFECYCLE_USERNAME }}
+          IQ_PASSWORD: ${{ secrets.LIFECYCLE_PASSWORD }}
+          INPUT_APPLICATION_ID: ${{ inputs.application_id }}
+          INPUT_ORGANIZATION_ID: ${{ inputs.organization_id }}
+          INPUT_CREATE_APPLICATION: ${{ inputs.create_application_if_missing }}
+          REPOSITORY: ${{ github.repository }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+        run: |
+          $appId = if ([string]::IsNullOrWhiteSpace($env:INPUT_APPLICATION_ID)) { $env:REPOSITORY } else { $env:INPUT_APPLICATION_ID }
+          $orgId = if ([string]::IsNullOrWhiteSpace($env:INPUT_ORGANIZATION_ID)) { $env:REPOSITORY_OWNER } else { $env:INPUT_ORGANIZATION_ID }
+
+          "application_id=$appId" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "organization_id=$orgId" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+          if ($env:INPUT_CREATE_APPLICATION -ne "true") {
+            Write-Host "Skipping Sonatype application auto-create; create_application_if_missing=false"
+            return
+          }
+
+          if ([string]::IsNullOrWhiteSpace($env:IQ_SERVER_URL)) {
+            throw "LIFECYCLE_SERVER_URL is required when create_application_if_missing=true."
+          }
+          if ([string]::IsNullOrWhiteSpace($env:IQ_USERNAME) -or [string]::IsNullOrWhiteSpace($env:IQ_PASSWORD)) {
+            throw "LIFECYCLE_USERNAME and LIFECYCLE_PASSWORD are required when create_application_if_missing=true."
+          }
+          if ([string]::IsNullOrWhiteSpace($orgId)) {
+            throw "organization_id could not be resolved. Set input organization_id or vars.LIFECYCLE_ORGANIZATION_ID conventionally in the caller."
+          }
+
+          $baseUrl = $env:IQ_SERVER_URL.TrimEnd('/')
+          $authToken = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("$($env:IQ_USERNAME):$($env:IQ_PASSWORD)"))
+          $headers = @{
+            Authorization = "Basic $authToken"
+            Accept = "application/json"
+          }
+
+          $encodedAppId = [uri]::EscapeDataString($appId)
+          $lookupUri = "$baseUrl/api/v2/applications?publicId=$encodedAppId"
+
+          try {
+            $lookupResponse = Invoke-RestMethod -Method Get -Uri $lookupUri -Headers $headers
+          } catch {
+            throw "Failed querying Sonatype applications at $lookupUri. $($_.Exception.Message)"
+          }
+
+          $applications = @()
+          if ($lookupResponse -is [System.Array]) {
+            $applications = @($lookupResponse)
+          } elseif ($null -ne $lookupResponse.applications) {
+            $applications = @($lookupResponse.applications)
+          } elseif ($null -ne $lookupResponse.items) {
+            $applications = @($lookupResponse.items)
+          } elseif ($null -ne $lookupResponse.id -or $null -ne $lookupResponse.publicId) {
+            $applications = @($lookupResponse)
+          }
+
+          $existing = $applications | Where-Object { $_.publicId -eq $appId } | Select-Object -First 1
+          if ($null -ne $existing) {
+            Write-Host "Sonatype application '$appId' already exists; continuing"
+            return
+          }
+
+          $createUri = "$baseUrl/api/v2/applications"
+          $createHeaders = @{
+            Authorization = "Basic $authToken"
+            Accept = "application/json"
+            "Content-Type" = "application/json"
+          }
+          $createPayloads = @(
+            @{ publicId = $appId; name = $appId; organizationId = $orgId },
+            @{ publicId = $appId; name = $appId; organization = @{ id = $orgId } },
+            @{ publicId = $appId; name = $appId; organizationPublicId = $orgId }
+          )
+
+          foreach ($payload in $createPayloads) {
+            try {
+              $jsonBody = $payload | ConvertTo-Json -Depth 5
+              Invoke-RestMethod -Method Post -Uri $createUri -Headers $createHeaders -Body $jsonBody | Out-Null
+              Write-Host "Created Sonatype application '$appId' under organization '$orgId'"
+              return
+            } catch {
+              Write-Host "Create attempt failed with payload shape [$($payload.Keys -join ', ')]: $($_.Exception.Message)"
+            }
+          }
+
+          throw "Unable to create Sonatype application '$appId'. Verify organization_id '$orgId' and credentials with application creation permission."
+
       - name: Run Sonatype evaluate
         id: run-iq-cli
         uses: sonatype/actions/evaluate@v1
@@ -46,7 +149,7 @@ jobs:
           iq-server-url: ${{ vars.LIFECYCLE_SERVER_URL }}
           username: ${{ secrets.LIFECYCLE_USERNAME }}
           password: ${{ secrets.LIFECYCLE_PASSWORD }}
-          application-id: ${{ inputs.application_id }}
+          application-id: ${{ steps.resolve-sonatype-app.outputs.application_id }}
           stage: ${{ inputs.stage }}
           scan-targets: ${{ inputs.scan_targets }}
 

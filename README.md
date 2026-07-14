@@ -235,9 +235,10 @@ Minimum shared configuration for most examples:
   - Secret: `FOD_CLIENT_SECRET`
 - Sonatype:
   - Variable: `LIFECYCLE_SERVER_URL`
+  - Variable (optional): `LIFECYCLE_ORGANIZATION_ID` (recommended if Sonatype org identifier differs from GitHub org/repository owner)
   - Secret: `LIFECYCLE_USERNAME`
   - Secret: `LIFECYCLE_PASSWORD`
-  - Variable: `LIFECYCLE_APPLICATIONS_ID`
+  - Variable (optional): `LIFECYCLE_APPLICATION_ID` (defaults to org/repo (`github.repository`) when unset)
 
 ## Organization-Level Configuration (GitHub.com And GHES)
 
@@ -248,7 +249,7 @@ Recommended split:
 - Organization Variables (non-sensitive):
   - `FOD_URL`
   - `LIFECYCLE_SERVER_URL`
-  - `LIFECYCLE_APPLICATIONS_ID` (only if shared; set per-repo if app-specific)
+  - `LIFECYCLE_APPLICATION_ID` (optional, only if shared; set per-repo if app-specific)
 - Organization Secrets (sensitive):
   - `FOD_CLIENT_ID`
   - `FOD_CLIENT_SECRET`

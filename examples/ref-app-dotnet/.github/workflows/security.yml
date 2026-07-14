@@ -18,6 +18,7 @@ jobs:
       language: dotnet
       source_dir: ./src/PlatformExampleDotnet
       build_strategy: auto
+      package_extra_opts: -bt dotnet -bf src/PlatformExampleDotnet/PlatformExampleDotnet.csproj
       do_sca_scan: true
       do_check_policy: true
     secrets: inherit
@@ -25,7 +26,9 @@ jobs:
   sonatype:
     uses: fortify-presales/platform-workflows/.github/workflows/reusable-sonatype-sca.yml@v1
     with:
-      application_id: ${{ vars.LIFECYCLE_APPLICATIONS_ID }}
+      application_id: ${{ vars.LIFECYCLE_APPLICATION_ID != '' && vars.LIFECYCLE_APPLICATION_ID || github.repository }}
+      organization_id: ${{ vars.LIFECYCLE_ORGANIZATION_ID != '' && vars.LIFECYCLE_ORGANIZATION_ID || github.repository_owner }}
+      create_application_if_missing: true
       scan_targets: src/PlatformExampleDotnet/*.csproj
     secrets: inherit
 

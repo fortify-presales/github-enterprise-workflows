@@ -22,7 +22,7 @@ param(
     [string]$SourceDir = ".",
 
     [Parameter(Mandatory = $false)]
-    [string]$SonatypeApplicationIdVar = "LIFECYCLE_APPLICATIONS_ID",
+    [string]$SonatypeApplicationIdVar = "LIFECYCLE_APPLICATION_ID",
 
     [Parameter(Mandatory = $false)]
     [string]$ScanTargets,
@@ -123,41 +123,43 @@ $template = @'
 name: Security
 
 on:
-  pull_request:
-  push:
-    branches: [__DEFAULT_BRANCH__]
-  workflow_dispatch:
+    pull_request:
+    push:
+        branches: [__DEFAULT_BRANCH__]
+    workflow_dispatch:
 
 permissions:
-  contents: read
-  security-events: write
-  pull-requests: write
+    contents: read
+    security-events: write
+    pull-requests: write
 
 jobs:
-  fortify:
-    uses: __WORKFLOW_OWNER__/__WORKFLOW_REPO__/.github/workflows/reusable-fortify-fod.yml@__WORKFLOW_REF__
-    with:
-      language: __LANGUAGE__
-      source_dir: __SOURCE_DIR__
-      build_strategy: auto
-      do_sca_scan: true
-      do_check_policy: true
-    secrets: inherit
+    fortify:
+        uses: __WORKFLOW_OWNER__/__WORKFLOW_REPO__/.github/workflows/reusable-fortify-fod.yml@__WORKFLOW_REF__
+        with:
+            language: __LANGUAGE__
+            source_dir: __SOURCE_DIR__
+            build_strategy: auto
+            do_sca_scan: true
+            do_check_policy: true
+        secrets: inherit
 
-  sonatype:
-    uses: __WORKFLOW_OWNER__/__WORKFLOW_REPO__/.github/workflows/reusable-sonatype-sca.yml@__WORKFLOW_REF__
-    with:
-      application_id: ${{ vars.__SONATYPE_APP_VAR__ }}
-      scan_targets: __SCAN_TARGETS__
-    secrets: inherit
+    sonatype:
+        uses: __WORKFLOW_OWNER__/__WORKFLOW_REPO__/.github/workflows/reusable-sonatype-sca.yml@__WORKFLOW_REF__
+        with:
+            application_id: ${{ vars.__SONATYPE_APP_VAR__ != '' && vars.__SONATYPE_APP_VAR__ || github.repository }}
+            organization_id: ${{ vars.LIFECYCLE_ORGANIZATION_ID != '' && vars.LIFECYCLE_ORGANIZATION_ID || github.repository_owner }}
+            create_application_if_missing: true
+            scan_targets: __SCAN_TARGETS__
+        secrets: inherit
 
-  gate:
-    needs: [fortify, sonatype]
-    if: ${{ always() && !cancelled() }}
-    uses: __WORKFLOW_OWNER__/__WORKFLOW_REPO__/.github/workflows/reusable-security-gate.yml@__WORKFLOW_REF__
-    with:
-      required_statuses_csv: >-
-        Fortify=${{ needs.fortify.result }},Sonatype=${{ needs.sonatype.result }}
+    gate:
+        needs: [fortify, sonatype]
+        if: ${{ always() && !cancelled() }}
+        uses: __WORKFLOW_OWNER__/__WORKFLOW_REPO__/.github/workflows/reusable-security-gate.yml@__WORKFLOW_REF__
+        with:
+            required_statuses_csv: >-
+                Fortify=${{ needs.fortify.result }},Sonatype=${{ needs.sonatype.result }}
 '@
 
 $workflowContent = $template

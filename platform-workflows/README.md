@@ -47,6 +47,7 @@ jobs:
       build_strategy: auto
       node_version: "22"
       source_dir: .
+      package_extra_opts: -bt none # Set explicit ScanCentral package flags for your stack
       do_sca_scan: true
       do_check_policy: true
     secrets: inherit

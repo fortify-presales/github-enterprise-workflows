@@ -47,6 +47,11 @@ on:
         required: false
         type: string
         default: "."
+      package_extra_opts:
+        description: Extra ScanCentral package options
+        required: false
+        type: string
+        default: ""
       do_setup:
         description: Create or configure FoD release if needed
         required: false
@@ -205,6 +210,7 @@ jobs:
           FOD_CLIENT_ID: ${{ secrets.FOD_CLIENT_ID }}
           FOD_CLIENT_SECRET: ${{ secrets.FOD_CLIENT_SECRET }}
           SOURCE_DIR: ${{ inputs.source_dir }}
+          PACKAGE_EXTRA_OPTS: ${{ inputs.package_extra_opts }}
           DO_SETUP: ${{ inputs.do_setup }}
           DO_SAST_SCAN: true
           DO_SCA_SCAN: ${{ inputs.do_sca_scan }}

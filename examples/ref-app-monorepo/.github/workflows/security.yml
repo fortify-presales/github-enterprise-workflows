@@ -97,7 +97,7 @@ jobs:
               seen[$service]=1
               language="$(detect_language "$path")"
               scan_targets="$(detect_scan_targets "$path" "$language")"
-              lifecycle_application_id="${{ vars.LIFECYCLE_APPLICATIONS_ID_PREFIX }}-$service"
+              lifecycle_application_id="${{ vars.LIFECYCLE_APPLICATION_ID_PREFIX }}-$service"
 
               includes+=("{\"service\":\"$service\",\"path\":\"$path\",\"language\":\"$language\",\"scan_targets\":\"$scan_targets\",\"lifecycle_application_id\":\"$lifecycle_application_id\"}")
             fi
@@ -127,6 +127,7 @@ jobs:
       language: ${{ matrix.language }}
       source_dir: ${{ matrix.path }}
       build_strategy: auto
+      package_extra_opts: -bt none
       do_sca_scan: true
       do_check_policy: true
     secrets: inherit
@@ -142,6 +143,8 @@ jobs:
     uses: fortify-presales/platform-workflows/.github/workflows/reusable-sonatype-sca.yml@v1
     with:
       application_id: ${{ matrix.lifecycle_application_id }}
+      organization_id: ${{ vars.LIFECYCLE_ORGANIZATION_ID != '' && vars.LIFECYCLE_ORGANIZATION_ID || github.repository_owner }}
+      create_application_if_missing: true
       scan_targets: ${{ matrix.scan_targets }}
     secrets: inherit
 

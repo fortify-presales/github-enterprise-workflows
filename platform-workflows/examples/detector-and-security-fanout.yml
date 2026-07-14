@@ -115,6 +115,8 @@ jobs:
     uses: fortify-presales/platform-workflows/.github/workflows/reusable-sonatype-sca.yml@v1
     with:
       application_id: ${{ matrix.lifecycle_application_id }}
+      organization_id: ${{ vars.LIFECYCLE_ORGANIZATION_ID != '' && vars.LIFECYCLE_ORGANIZATION_ID || github.repository_owner }}
+      create_application_if_missing: true
       scan_targets: ${{ format('{0}/package.json {0}/package-lock.json', matrix.path) }}
     secrets: inherit
 
