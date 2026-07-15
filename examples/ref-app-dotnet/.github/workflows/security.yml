@@ -12,7 +12,8 @@ permissions:
   pull-requests: write
 
 jobs:
-  fortify:
+  sec_sast_fod:
+    name: Fortify SAST (FoD)
     uses: fortify-presales/platform-workflows/.github/workflows/reusable-fortify-fod.yml@v1
     with:
       language: dotnet
@@ -26,7 +27,8 @@ jobs:
       do_check_policy: true
     secrets: inherit
 
-  sonatype:
+  sec_sca_sonatype:
+    name: Sonatype SCA
     uses: fortify-presales/platform-workflows/.github/workflows/reusable-sonatype-sca.yml@v1
     with:
       application_id: ${{ vars.LIFECYCLE_APPLICATION_ID != '' && vars.LIFECYCLE_APPLICATION_ID || github.event.repository.name }}
@@ -35,10 +37,11 @@ jobs:
       scan_targets: src/PlatformExampleDotnet/*.csproj
     secrets: inherit
 
-  gate:
-    needs: [fortify, sonatype]
+  sec_gate:
+    name: Security Gate
+    needs: [sec_sast_fod, sec_sca_sonatype]
     if: ${{ always() && !cancelled() }}
     uses: fortify-presales/platform-workflows/.github/workflows/reusable-security-gate.yml@v1
     with:
       required_statuses_csv: >-
-        Fortify=${{ needs.fortify.result }},Sonatype=${{ needs.sonatype.result }}
+        Fortify=${{ needs.sec_sast_fod.result }},Sonatype=${{ needs.sec_sca_sonatype.result }}

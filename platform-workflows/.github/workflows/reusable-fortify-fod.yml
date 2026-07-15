@@ -124,7 +124,8 @@ permissions:
   pull-requests: write
 
 jobs:
-  fortify:
+  run_scan:
+    name: Scan (FoD)
     runs-on: ${{ inputs.runner }}
     steps:
       - name: Checkout

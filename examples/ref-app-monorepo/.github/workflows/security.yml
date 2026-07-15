@@ -114,8 +114,8 @@ jobs:
           cat matrix.json >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
 
-  fortify:
-    name: Fortify (${{ matrix.service }})
+  sec_sast_fod:
+    name: Fortify SAST (FoD) (${{ matrix.service }})
     needs: detect
     if: ${{ needs.detect.outputs.matrix != '' }}
     strategy:
@@ -135,8 +135,8 @@ jobs:
       do_check_policy: true
     secrets: inherit
 
-  sonatype:
-    name: Sonatype (${{ matrix.service }})
+  sec_sca_sonatype:
+    name: Sonatype SCA (${{ matrix.service }})
     needs: detect
     if: ${{ needs.detect.outputs.matrix != '' }}
     strategy:
@@ -151,11 +151,11 @@ jobs:
       scan_targets: ${{ matrix.scan_targets }}
     secrets: inherit
 
-  gate:
+  sec_gate:
     name: Security Gate
-    needs: [fortify, sonatype]
+    needs: [sec_sast_fod, sec_sca_sonatype]
     if: ${{ always() && !cancelled() }}
     uses: fortify-presales/platform-workflows/.github/workflows/reusable-security-gate.yml@v1
     with:
       required_statuses_csv: >-
-        Fortify=${{ needs.fortify.result }},Sonatype=${{ needs.sonatype.result }}
+        Fortify=${{ needs.sec_sast_fod.result }},Sonatype=${{ needs.sec_sca_sonatype.result }}

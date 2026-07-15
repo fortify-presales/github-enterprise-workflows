@@ -44,7 +44,8 @@ permissions:
   security-events: write
 
 jobs:
-  sonatype:
+  run_scan:
+    name: Scan (Sonatype)
     runs-on: ${{ inputs.runner }}
     steps:
       - name: Checkout

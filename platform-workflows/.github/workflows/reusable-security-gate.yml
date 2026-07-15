@@ -27,7 +27,8 @@ permissions:
   contents: read
 
 jobs:
-  gate:
+  evaluate_gate:
+    name: Evaluate Gate
     runs-on: ubuntu-latest
     steps:
       - name: Evaluate gate

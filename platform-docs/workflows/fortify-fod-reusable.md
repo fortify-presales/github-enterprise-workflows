@@ -85,4 +85,5 @@ Optional authentication mode:
 
 - Workflow should fail on scanner execution errors by default.
 - Policy check stage controls branch protection outcome.
+- For GitHub.com and GHES setup steps that require only Security Gate, see `workflows/security-gate.md`.
 - Optional non-blocking mode can be allowed only during onboarding.
