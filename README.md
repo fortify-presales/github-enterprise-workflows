@@ -1,6 +1,6 @@
-# GitHub Enterprise Workflows Platform
+# AppSec Platform (GitHub)
 
-This repository is the source-of-truth monorepo for reusable GitHub security workflows, custom policy actions, governance automation, and example projects.
+This repository is the source-of-truth monorepo for reusable GitHub application security workflows, custom policy actions, governance automation, and example projects.
 
 Primary focus:
 
