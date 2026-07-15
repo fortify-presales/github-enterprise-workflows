@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Ensure final branch protection gate behavior is correct and deterministic across Fortify and Sonatype outcomes.
+Ensure final branch protection gate behavior is correct and deterministic across Fortify and Sonatype Lifecycle outcomes.
 
 ## Use When
 
@@ -13,7 +13,7 @@ Ensure final branch protection gate behavior is correct and deterministic across
 ## Checks
 
 - required upstream jobs are present and referenced by needs
-- gate is aggregate (single required check) after Fortify/Sonatype fanout
+- gate is aggregate (single required check) after Fortify/Sonatype Lifecycle fanout
 - gate logic treats required scans as blocking where configured
 - exemption path requires explicit ticket and expiration
 - summary output communicates decision clearly

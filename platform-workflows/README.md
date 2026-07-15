@@ -6,7 +6,21 @@ Central reusable GitHub Actions workflows for security and governance.
 
 - `.github/workflows/reusable-fortify-fod.yml`
 - `.github/workflows/reusable-sonatype-sca.yml`
+- `.github/workflows/reusable-sonatype-fod-sync.yml`
 - `.github/workflows/reusable-security-gate.yml`
+
+## Sonatype Lifecycle FoD Sync Guidance
+
+Use `.github/workflows/reusable-sonatype-fod-sync.yml` from a dedicated scheduled/manual caller workflow (separate from branch-protection `security.yml`).
+
+Key inputs for action source portability:
+
+- `lifecycle_fod_import_action` (explicit URL/path override)
+- `platform_actions_repository` (for example `my-org/platform-actions`)
+- `platform_actions_ref` (for example `v1` or pinned SHA)
+- `platform_actions_action_path` (default `actions/import-lifecycle-sbom-to-fod.yaml`)
+
+When `lifecycle_fod_import_action` is empty, the reusable workflow derives a default URL from `github.server_url`, enabling GitHub.com and GHES compatibility without hardcoding `raw.githubusercontent.com`.
 
 ## Usage
 

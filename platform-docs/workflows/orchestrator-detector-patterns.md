@@ -45,7 +45,7 @@ This starter:
 
 1. Determines changed files from PR or push range.
 2. Builds a matrix from `services/*` and `apps/*` paths.
-3. Fans out Fortify and Sonatype scans per changed service.
+3. Fans out Fortify and Sonatype Lifecycle scans per changed service.
 4. Enforces one aggregate security gate.
 
 ## Pattern C: Polyglot Detector (Starter)
@@ -59,8 +59,8 @@ Reference example:
 This starter adds:
 
 1. Per-service language detection from common build files.
-2. Per-service Sonatype scan target generation.
-3. Matrix fields consumed directly by Fortify and Sonatype reusable workflows.
+2. Per-service Sonatype Lifecycle scan target generation.
+3. Matrix fields consumed directly by Fortify and Sonatype Lifecycle reusable workflows.
 
 Matrix item fields:
 
@@ -81,5 +81,5 @@ Matrix item fields:
 
 1. Service path mapping for non-standard monorepo layouts.
 2. Per-service language assignment (`node`, `python`, `maven`, `gradle`, `dotnet`).
-3. Sonatype `application_id` mapping strategy.
+3. Sonatype Lifecycle `application_id` mapping strategy.
 4. Exemption handling via gate workflow inputs.

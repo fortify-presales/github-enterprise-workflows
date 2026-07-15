@@ -15,6 +15,7 @@ Organization
 |-- platform-workflows
 |   |-- .github/workflows/reusable-fortify-fod.yml
 |   |-- .github/workflows/reusable-sonatype-sca.yml
+|   |-- .github/workflows/reusable-sonatype-fod-sync.yml
 |   |-- .github/workflows/reusable-security-gate.yml
 |
 |-- platform-actions

@@ -1,0 +1,149 @@
+name: Publish Platform Docs (GitHub Pages)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Generate and build Docusaurus site
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          SITE_DIR="${RUNNER_TEMP}/platform-docs-site"
+          npx --yes create-docusaurus@latest "$SITE_DIR" classic --javascript --package-manager npm
+
+          rm -rf "$SITE_DIR/docs"
+          mkdir -p "$SITE_DIR/docs"
+
+          # Copy platform docs content into generated docs directory.
+          shopt -s dotglob
+          for item in *; do
+            if [[ "$item" == ".git" || "$item" == ".github" || "$item" == "docusaurus" ]]; then
+              continue
+            fi
+            cp -R "$item" "$SITE_DIR/docs/"
+          done
+
+          cp docusaurus/sidebars.js "$SITE_DIR/sidebars.js"
+
+          cat > "$SITE_DIR/docusaurus.config.js" <<'EOF'
+          module.exports = {
+            title: 'Platform Docs',
+            tagline: 'Security workflow platform documentation',
+            url: 'https://example.com',
+            baseUrl: '/',
+            onBrokenLinks: 'throw',
+            onBrokenMarkdownLinks: 'warn',
+            favicon: 'img/favicon.ico',
+            organizationName: 'platform',
+            projectName: 'platform-docs',
+            i18n: {
+              defaultLocale: 'en',
+              locales: ['en']
+            },
+            presets: [
+              [
+                'classic',
+                {
+                  docs: {
+                    routeBasePath: '/docs',
+                    sidebarPath: require.resolve('./sidebars.js')
+                  },
+                  blog: false,
+                  theme: {
+                    customCss: require.resolve('./src/css/custom.css')
+                  }
+                }
+              ]
+            ],
+            themeConfig: {
+              navbar: {
+                title: 'Platform Docs',
+                items: [
+                  {
+                    type: 'docSidebar',
+                    sidebarId: 'docs',
+                    position: 'left',
+                    label: 'Docs'
+                  }
+                ]
+              },
+              prism: {
+                theme: require('prism-react-renderer').themes.github,
+                darkTheme: require('prism-react-renderer').themes.dracula
+              }
+            }
+          };
+          EOF
+
+          rm -f "$SITE_DIR/src/pages/index.js" \
+                "$SITE_DIR/src/pages/index.jsx" \
+                "$SITE_DIR/src/pages/index.ts" \
+                "$SITE_DIR/src/pages/index.tsx" \
+                "$SITE_DIR/src/pages/index.mdx"
+
+          cat > "$SITE_DIR/src/pages/index.js" <<'EOF'
+          import React, {useEffect} from 'react';
+          import useBaseUrl from '@docusaurus/useBaseUrl';
+
+          export default function Home() {
+            const target = useBaseUrl('/docs/intro');
+
+            useEffect(() => {
+              window.location.replace(target);
+            }, [target]);
+
+            return (
+              <main style={{padding: '2rem'}}>
+                <p>
+                  Redirecting to <a href={target}>{target}</a>...
+                </p>
+              </main>
+            );
+          }
+          EOF
+
+          cd "$SITE_DIR"
+          npm ci
+          npm run build
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ runner.temp }}/platform-docs-site/build
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

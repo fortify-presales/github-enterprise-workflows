@@ -1,12 +1,12 @@
-# Skill: Sonatype SCA Setup and Configuration
+# Skill: Sonatype Lifecycle SCA Setup and Configuration
 
 ## Purpose
 
-Validate and configure Sonatype SCA integration, including optional central CI configuration API usage and FoD SBOM import.
+Validate and configure Sonatype Lifecycle SCA integration, including optional central CI configuration API usage and FoD SBOM import.
 
 ## Use When
 
-- Sonatype evaluation fails due to missing config or invalid app/stage setup
+- Sonatype Lifecycle evaluation fails due to missing config or invalid app/stage setup
 - repository onboarding requires central CI configuration alignment
 - SBOM import to FoD is required
 
@@ -36,11 +36,11 @@ Validate and configure Sonatype SCA integration, including optional central CI c
 
 ## Actions
 
-1. Inspect Sonatype workflow inputs/env.
+1. Inspect Sonatype Lifecycle workflow inputs/env.
 2. Validate central configuration strategy.
 3. Validate artifact upload behavior for GHES.
 4. Produce remediation suggestions for invalid or missing values.
-5. Validate detector matrix fields required by Sonatype fanout jobs.
+5. Validate detector matrix fields required by Sonatype Lifecycle fanout jobs.
 
 ## Output
 

@@ -21,6 +21,11 @@ Top-level platform directories:
 - `sample_workflows/` and `sample_actions/`: standalone workflow/action examples
 - `scripts/`: helper scripts for example bootstrapping and subtree publishing
 
+Useful scripts:
+
+- `scripts/publish-platform-directories.ps1`: publish top-level platform directories to split repositories
+- `scripts/preview-platform-docs.ps1`: build/preview platform docs locally through a transient Docusaurus scaffold
+
 ## Recommended Platform Model
 
 Use this repository as a central authoring repo, then publish subdirectories into dedicated repositories in your organization (for example under `fortify-presales`).
@@ -206,6 +211,7 @@ How publishing works:
 ## Platform Workflow Consumption Pattern
 
 Application repositories should keep thin caller workflows and reference centralized reusable workflows by version tag (not `@main`).
+For Sonatype Lifecycle -> FoD SBOM synchronization, prefer a separate scheduled/manual caller workflow (for example `lifecycle-fod-sync.yml`) instead of mixing it into branch-protection `security.yml` jobs.
 
 Example:
 
@@ -239,6 +245,10 @@ Minimum shared configuration for most examples:
   - Secret: `LIFECYCLE_USERNAME`
   - Secret: `LIFECYCLE_PASSWORD`
   - Variable (optional): `LIFECYCLE_APPLICATION_ID` (defaults to the repository name when unset)
+  - Variable (optional): `FOD_RELEASE` (used by Lifecycle -> FoD SBOM sync; defaults to `<owner>/<repo>:<default_branch>`)
+  - Variable (optional): `PLATFORM_ACTIONS_REPOSITORY` (for example `my-org/platform-actions`)
+  - Variable (optional): `PLATFORM_ACTIONS_REF` (for example `v1` or pinned SHA)
+  - Variable (optional): `PLATFORM_ACTIONS_ACTION_PATH` (default `actions/import-lifecycle-sbom-to-fod.yaml`)
 
 ## Organization-Level Configuration (GitHub.com And GHES)
 

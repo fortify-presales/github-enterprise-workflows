@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Onboard a repository to centralized reusable workflows for Fortify and Sonatype with minimal per-repository YAML.
+Onboard a repository to centralized reusable workflows for Fortify and Sonatype Lifecycle with minimal per-repository YAML.
 
 ## Use When
 
@@ -35,7 +35,7 @@ Onboard a repository to centralized reusable workflows for Fortify and Sonatype 
 
 - no shared workflow references using main
 - required Fortify caller job present
-- required Sonatype caller job present
+- required Sonatype Lifecycle caller job present
 - required branch triggers configured
 - detector matrix includes service metadata needed for fanout
 	- service

@@ -1,6 +1,6 @@
 # GitHub Enterprise Enforcement Strategy
 
-This page defines practical controls for forcing adoption of centralized Fortify and Sonatype reusable workflows.
+This page defines practical controls for forcing adoption of centralized Fortify and Sonatype Lifecycle reusable workflows.
 
 For copy-ready sample settings, see `governance/enforcement-examples.md`.
 For copy/paste starter snippets, see `governance/enforcement-templates.md`.
@@ -21,7 +21,7 @@ Use multiple controls together.
 Primary control:
 
 - Require a single status check such as `Security Gate` on protected branches.
-- Ensure this gate depends on centralized Fortify and Sonatype reusable workflows.
+- Ensure this gate depends on centralized Fortify and Sonatype Lifecycle reusable workflows.
 
 Why this works:
 

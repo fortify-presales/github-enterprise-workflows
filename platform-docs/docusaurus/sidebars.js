@@ -8,6 +8,7 @@ module.exports = {
       items: [
         'workflows/fortify-fod-reusable',
         'workflows/sonatype-sca-reusable',
+        'workflows/sonatype-lifecycle-fod-sync',
         'workflows/security-gate',
         'workflows/orchestrator-detector-patterns'
       ]

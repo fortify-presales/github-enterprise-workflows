@@ -34,7 +34,7 @@ jobs:
 			fortify_status: ${{ needs.fortify.result }}
 			sonatype_status: ${{ needs.sonatype.result }}
 			required_statuses_csv: >-
-				Fortify=${{ needs.fortify.result }},Sonatype=${{ needs.sonatype.result }},Snyk=${{ needs.snyk.result }},CodeQL=${{ needs.codeql.result }}
+				Fortify=${{ needs.fortify.result }},Lifecycle=${{ needs.sonatype.result }},Snyk=${{ needs.snyk.result }},CodeQL=${{ needs.codeql.result }}
 			allowed_statuses_csv: success
 ```
 
@@ -59,7 +59,7 @@ Always copy the exact check context from a recent pull request run.
 1. Open repository **Settings** > **Branches**.
 2. Create or edit the branch protection rule for target branches (for example, `main`).
 3. Enable **Require status checks to pass before merging**.
-4. Remove individual tool checks (for example, Fortify or Sonatype checks).
+4. Remove individual tool checks (for example, Fortify or Sonatype Lifecycle checks).
 5. Add only the Security Gate check context (`Security Gate` or `Security / Security Gate`, whichever exactly matches your PR check).
 6. Save changes.
 

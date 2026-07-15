@@ -1,0 +1,297 @@
+name: Reusable Sonatype Lifecycle FoD Sync
+
+on:
+  schedule:
+    - cron: "0 */4 * * *"
+  workflow_dispatch:
+    inputs:
+      application_id:
+        description: Sonatype Lifecycle application public ID (optional; defaults to repository name)
+        required: false
+        type: string
+        default: ""
+      stage:
+        description: Sonatype Lifecycle stage used to download the latest CycloneDX SBOM
+        required: false
+        type: string
+        default: build
+      fod_release:
+        description: FoD release identifier (optional; defaults to <owner>/<repo>:<default_branch>)
+        required: false
+        type: string
+        default: ""
+      sbom_version:
+        description: CycloneDX version for Sonatype Lifecycle stage SBOM download
+        required: false
+        type: string
+        default: "1.6"
+      sbom_artifact_name:
+        description: Artifact name used for SBOM upload
+        required: false
+        type: string
+        default: lifecycle-sbom
+      lifecycle_fod_import_action:
+        description: fcli action reference (path or URL) for Lifecycle SBOM enrichment and FoD import
+        required: false
+        type: string
+        default: ""
+      sonatype_fod_import_action:
+        description: Deprecated alias for lifecycle_fod_import_action
+        required: false
+        type: string
+        default: ""
+      platform_actions_repository:
+        description: Repository containing the custom action (owner/repo), used when lifecycle_fod_import_action is empty
+        required: false
+        type: string
+        default: fortify-presales/platform-actions
+      platform_actions_ref:
+        description: Git ref (tag/branch/SHA) for platform_actions_repository, used when lifecycle_fod_import_action is empty
+        required: false
+        type: string
+        default: v1
+      platform_actions_action_path:
+        description: Action file path within platform_actions_repository, used when lifecycle_fod_import_action is empty
+        required: false
+        type: string
+        default: actions/import-lifecycle-sbom-to-fod.yaml
+      runner:
+        description: Runner label
+        required: false
+        type: string
+        default: ubuntu-latest
+      upload_sbom_artifact:
+        description: Upload fetched SBOM as an artifact
+        required: false
+        type: boolean
+        default: true
+  workflow_call:
+    inputs:
+      application_id:
+        description: Sonatype Lifecycle application public ID (optional; defaults to repository name)
+        required: false
+        type: string
+        default: ""
+      stage:
+        description: Sonatype Lifecycle stage used to download the latest CycloneDX SBOM
+        required: false
+        type: string
+        default: build
+      fod_release:
+        description: FoD release identifier (optional; defaults to <owner>/<repo>:<default_branch>)
+        required: false
+        type: string
+        default: ""
+      sbom_version:
+        description: CycloneDX version for Sonatype Lifecycle stage SBOM download
+        required: false
+        type: string
+        default: "1.6"
+      sbom_artifact_name:
+        description: Artifact name used for SBOM upload
+        required: false
+        type: string
+        default: lifecycle-sbom
+      lifecycle_fod_import_action:
+        description: fcli action reference (path or URL) for Lifecycle SBOM enrichment and FoD import
+        required: false
+        type: string
+        default: ""
+      sonatype_fod_import_action:
+        description: Deprecated alias for lifecycle_fod_import_action
+        required: false
+        type: string
+        default: ""
+      platform_actions_repository:
+        description: Repository containing the custom action (owner/repo), used when lifecycle_fod_import_action is empty
+        required: false
+        type: string
+        default: fortify-presales/platform-actions
+      platform_actions_ref:
+        description: Git ref (tag/branch/SHA) for platform_actions_repository, used when lifecycle_fod_import_action is empty
+        required: false
+        type: string
+        default: v1
+      platform_actions_action_path:
+        description: Action file path within platform_actions_repository, used when lifecycle_fod_import_action is empty
+        required: false
+        type: string
+        default: actions/import-lifecycle-sbom-to-fod.yaml
+      runner:
+        description: Runner label
+        required: false
+        type: string
+        default: ubuntu-latest
+      upload_sbom_artifact:
+        description: Upload fetched SBOM as an artifact
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  prepare:
+    name: Resolve Inputs
+    runs-on: ubuntu-latest
+    if: ${{ github.ref_name == github.event.repository.default_branch }}
+    outputs:
+      lifecycle_app_id: ${{ steps.resolve.outputs.lifecycle_app_id }}
+      stage: ${{ steps.resolve.outputs.stage }}
+      sbom_version: ${{ steps.resolve.outputs.sbom_version }}
+      sbom_artifact_name: ${{ steps.resolve.outputs.sbom_artifact_name }}
+      lifecycle_fod_import_action: ${{ steps.resolve.outputs.lifecycle_fod_import_action }}
+      fod_release: ${{ steps.resolve.outputs.fod_release }}
+      runner: ${{ steps.resolve.outputs.runner }}
+      upload_sbom_artifact: ${{ steps.resolve.outputs.upload_sbom_artifact }}
+    steps:
+      - name: Resolve workflow runtime configuration
+        id: resolve
+        shell: bash
+        env:
+          CALL_APPLICATION_ID: ${{ inputs.application_id }}
+          DISPATCH_APPLICATION_ID: ${{ github.event.inputs.application_id }}
+          CALL_STAGE: ${{ inputs.stage }}
+          DISPATCH_STAGE: ${{ github.event.inputs.stage }}
+          CALL_SBOM_VERSION: ${{ inputs.sbom_version }}
+          DISPATCH_SBOM_VERSION: ${{ github.event.inputs.sbom_version }}
+          CALL_SBOM_ARTIFACT_NAME: ${{ inputs.sbom_artifact_name }}
+          DISPATCH_SBOM_ARTIFACT_NAME: ${{ github.event.inputs.sbom_artifact_name }}
+          CALL_LIFECYCLE_FOD_IMPORT_ACTION: ${{ inputs.lifecycle_fod_import_action }}
+          DISPATCH_LIFECYCLE_FOD_IMPORT_ACTION: ${{ github.event.inputs.lifecycle_fod_import_action }}
+          CALL_SONATYPE_FOD_IMPORT_ACTION: ${{ inputs.sonatype_fod_import_action }}
+          DISPATCH_SONATYPE_FOD_IMPORT_ACTION: ${{ github.event.inputs.sonatype_fod_import_action }}
+          CALL_PLATFORM_ACTIONS_REPOSITORY: ${{ inputs.platform_actions_repository }}
+          DISPATCH_PLATFORM_ACTIONS_REPOSITORY: ${{ github.event.inputs.platform_actions_repository }}
+          CALL_PLATFORM_ACTIONS_REF: ${{ inputs.platform_actions_ref }}
+          DISPATCH_PLATFORM_ACTIONS_REF: ${{ github.event.inputs.platform_actions_ref }}
+          CALL_PLATFORM_ACTIONS_ACTION_PATH: ${{ inputs.platform_actions_action_path }}
+          DISPATCH_PLATFORM_ACTIONS_ACTION_PATH: ${{ github.event.inputs.platform_actions_action_path }}
+          CALL_FOD_RELEASE: ${{ inputs.fod_release }}
+          DISPATCH_FOD_RELEASE: ${{ github.event.inputs.fod_release }}
+          CALL_RUNNER: ${{ inputs.runner }}
+          DISPATCH_RUNNER: ${{ github.event.inputs.runner }}
+          CALL_UPLOAD_SBOM_ARTIFACT: ${{ inputs.upload_sbom_artifact }}
+          DISPATCH_UPLOAD_SBOM_ARTIFACT: ${{ github.event.inputs.upload_sbom_artifact }}
+          REPOSITORY: ${{ github.repository }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+
+          first_non_empty() {
+            for value in "$@"; do
+              if [ -n "${value:-}" ]; then
+                echo "$value"
+                return 0
+              fi
+            done
+            echo ""
+          }
+
+          repo_name="${REPOSITORY##*/}"
+
+          lifecycle_app_id="$(first_non_empty "$CALL_APPLICATION_ID" "$DISPATCH_APPLICATION_ID" "$repo_name")"
+          stage="$(first_non_empty "$CALL_STAGE" "$DISPATCH_STAGE" "build")"
+          sbom_version="$(first_non_empty "$CALL_SBOM_VERSION" "$DISPATCH_SBOM_VERSION" "1.6")"
+          sbom_artifact_name="$(first_non_empty "$CALL_SBOM_ARTIFACT_NAME" "$DISPATCH_SBOM_ARTIFACT_NAME" "lifecycle-sbom")"
+          platform_actions_repository="$(first_non_empty "$CALL_PLATFORM_ACTIONS_REPOSITORY" "$DISPATCH_PLATFORM_ACTIONS_REPOSITORY" "fortify-presales/platform-actions")"
+          platform_actions_ref="$(first_non_empty "$CALL_PLATFORM_ACTIONS_REF" "$DISPATCH_PLATFORM_ACTIONS_REF" "v1")"
+          platform_actions_action_path="$(first_non_empty "$CALL_PLATFORM_ACTIONS_ACTION_PATH" "$DISPATCH_PLATFORM_ACTIONS_ACTION_PATH" "actions/import-lifecycle-sbom-to-fod.yaml")"
+
+          github_server_url="${GITHUB_SERVER_URL%/}"
+          default_lifecycle_fod_import_action="${github_server_url}/${platform_actions_repository}/raw/${platform_actions_ref}/${platform_actions_action_path}"
+
+          lifecycle_fod_import_action="$(first_non_empty "$CALL_LIFECYCLE_FOD_IMPORT_ACTION" "$DISPATCH_LIFECYCLE_FOD_IMPORT_ACTION" "$CALL_SONATYPE_FOD_IMPORT_ACTION" "$DISPATCH_SONATYPE_FOD_IMPORT_ACTION" "$default_lifecycle_fod_import_action")"
+          runner="$(first_non_empty "$CALL_RUNNER" "$DISPATCH_RUNNER" "ubuntu-latest")"
+          upload_sbom_artifact="$(first_non_empty "$CALL_UPLOAD_SBOM_ARTIFACT" "$DISPATCH_UPLOAD_SBOM_ARTIFACT" "true")"
+
+          explicit_fod_release="$(first_non_empty "$CALL_FOD_RELEASE" "$DISPATCH_FOD_RELEASE")"
+          if [ -n "$explicit_fod_release" ]; then
+            fod_release="$explicit_fod_release"
+          else
+            fod_release="${REPOSITORY}:${DEFAULT_BRANCH}"
+          fi
+
+          echo "lifecycle_app_id=$lifecycle_app_id" >> "$GITHUB_OUTPUT"
+          echo "stage=$stage" >> "$GITHUB_OUTPUT"
+          echo "sbom_version=$sbom_version" >> "$GITHUB_OUTPUT"
+          echo "sbom_artifact_name=$sbom_artifact_name" >> "$GITHUB_OUTPUT"
+          echo "lifecycle_fod_import_action=$lifecycle_fod_import_action" >> "$GITHUB_OUTPUT"
+          echo "fod_release=$fod_release" >> "$GITHUB_OUTPUT"
+          echo "runner=$runner" >> "$GITHUB_OUTPUT"
+          echo "upload_sbom_artifact=$upload_sbom_artifact" >> "$GITHUB_OUTPUT"
+
+  sync_sbom:
+    name: Sync Sonatype Lifecycle CycloneDX To FoD
+    needs: prepare
+    runs-on: ${{ needs.prepare.outputs.runner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up fcli
+        uses: fortify/github-action/setup@v3
+        with:
+          fcli: bootstrapped
+
+      - name: Run Lifecycle FoD SBOM import action (with enrichment)
+        id: run-sonatype-fod-import
+        shell: bash
+        env:
+          LIFECYCLE_SERVER_URL: ${{ vars.LIFECYCLE_SERVER_URL }}
+          LIFECYCLE_USERNAME: ${{ secrets.LIFECYCLE_USERNAME }}
+          LIFECYCLE_PASSWORD: ${{ secrets.LIFECYCLE_PASSWORD }}
+          LIFECYCLE_APP_ID: ${{ needs.prepare.outputs.lifecycle_app_id }}
+          LIFECYCLE_STAGE: ${{ needs.prepare.outputs.stage }}
+          SBOM_VERSION: ${{ needs.prepare.outputs.sbom_version }}
+          LIFECYCLE_FOD_IMPORT_ACTION: ${{ needs.prepare.outputs.lifecycle_fod_import_action }}
+          FOD_URL: ${{ vars.FOD_URL }}
+          FOD_CLIENT_ID: ${{ secrets.FOD_CLIENT_ID }}
+          FOD_CLIENT_SECRET: ${{ secrets.FOD_CLIENT_SECRET }}
+          FOD_RELEASE: ${{ needs.prepare.outputs.fod_release }}
+          SBOM_ARTIFACT_NAME: ${{ needs.prepare.outputs.sbom_artifact_name }}
+        run: |
+          set -euo pipefail
+
+          : "${LIFECYCLE_SERVER_URL:?LIFECYCLE_SERVER_URL repository variable is required}"
+          : "${LIFECYCLE_USERNAME:?LIFECYCLE_USERNAME secret is required}"
+          : "${LIFECYCLE_PASSWORD:?LIFECYCLE_PASSWORD secret is required}"
+          : "${LIFECYCLE_APP_ID:?LIFECYCLE application id is required}"
+          : "${LIFECYCLE_FOD_IMPORT_ACTION:?lifecycle_fod_import_action is required}"
+          : "${FOD_URL:?FOD_URL repository variable is required}"
+          : "${FOD_CLIENT_ID:?FOD_CLIENT_ID secret is required}"
+          : "${FOD_CLIENT_SECRET:?FOD_CLIENT_SECRET secret is required}"
+          : "${FOD_RELEASE:?FoD release is required}"
+
+          sbom_path="${SBOM_ARTIFACT_NAME}.cdx.json"
+
+          fcli fod session login \
+            --url "${FOD_URL}" \
+            --client-id "${FOD_CLIENT_ID}" \
+            --client-secret "${FOD_CLIENT_SECRET}"
+
+          fcli fod action run "${LIFECYCLE_FOD_IMPORT_ACTION}" --on-unsigned=ignore \
+            --lifecycle-url="${LIFECYCLE_SERVER_URL}" \
+            --lifecycle-username="${LIFECYCLE_USERNAME}" \
+            --lifecycle-password="${LIFECYCLE_PASSWORD}" \
+            --lifecycle-app-id="${LIFECYCLE_APP_ID}" \
+            --lifecycle-stage="${LIFECYCLE_STAGE}" \
+            --lifecycle-cyclonedx-version="${SBOM_VERSION}" \
+            --enrich=true \
+            --fod-release="${FOD_RELEASE}" \
+            --sbom-file="${sbom_path}" \
+            --fod-session="default"
+
+          echo "sbom_path=${sbom_path}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Lifecycle SBOM artifact
+        if: ${{ always() && needs.prepare.outputs.upload_sbom_artifact == 'true' && steps.run-sonatype-fod-import.outputs.sbom_path != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ needs.prepare.outputs.sbom_artifact_name }}
+          path: ${{ steps.run-sonatype-fod-import.outputs.sbom_path }}
+          if-no-files-found: warn
+          retention-days: 14

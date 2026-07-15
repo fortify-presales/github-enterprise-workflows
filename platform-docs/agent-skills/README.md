@@ -1,13 +1,11 @@
 # LLM Agent Skills for Setup and Configuration
 
-Yes, this is possible and recommended for consistency at scale.
-
 These skill documents are templates for agent workflows that can help with:
 
 - onboarding repositories to reusable security workflows
 - integrating with existing orchestrator and detector patterns
 - validating Fortify setup and configuration
-- validating Sonatype setup and central CI configuration
+- validating Sonatype Lifecycle setup and central CI configuration
 - distributing governance templates across repositories
 - applying and validating GHES ruleset enforcement
 - enforcing organization-level defaults while allowing approved overrides
@@ -40,6 +38,6 @@ These skill documents are templates for agent workflows that can help with:
 
 For Copilot-style local skills, place each skill under:
 
-.copilot/skills/<skill-name>/SKILL.md
+`.copilot/skills/<skill-name>/SKILL.md`
 
 This directory currently provides documented templates that can be copied into active skill locations.

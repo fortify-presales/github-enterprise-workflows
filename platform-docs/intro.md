@@ -3,7 +3,7 @@
 This documentation set defines an enterprise operating model for reusable GitHub Actions workflows focused on:
 
 - Fortify on Demand (FoD) Static Application Security Testing (SAST)
-- Sonatype Software Composition Analysis (SCA)
+- Sonatype Lifecycle Software Composition Analysis (SCA)
 
 ## Goals
 

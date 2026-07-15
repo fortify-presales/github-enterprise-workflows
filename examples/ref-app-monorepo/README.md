@@ -14,6 +14,7 @@ Minimal polyglot monorepo example for validating detector and fanout patterns.
   - changed-service detector
   - Fortify and Sonatype fanout
   - generic security gate
+- `.github/workflows/lifecycle-fod-sync.yml` runs scheduled/manual Sonatype Lifecycle -> FoD SBOM sync (nightly at `0 2 * * *`).
 
 ## Notes
 

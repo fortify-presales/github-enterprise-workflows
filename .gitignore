@@ -2,4 +2,6 @@
 sample_actions/
 sample_workflows/
 
-.fortify
+.fortify/
+
+.tmp/

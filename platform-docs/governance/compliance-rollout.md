@@ -9,7 +9,7 @@ A repository is compliant when:
 1. It references approved reusable workflow paths.
 2. It pins approved workflow versions.
 3. It avoids `@main` for shared workflow references.
-4. It includes required Fortify and Sonatype caller jobs unless exempted.
+4. It includes required Fortify and Sonatype Lifecycle caller jobs unless exempted.
 5. It enforces a security gate on protected branches.
 
 ## Rollout Phases

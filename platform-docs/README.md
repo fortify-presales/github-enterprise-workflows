@@ -5,7 +5,7 @@ This directory contains structured documentation for enterprise reusable workflo
 ## Audience
 
 - Platform engineering teams owning centralized workflows
-- Security engineering teams owning Fortify and Sonatype policy controls
+- Security engineering teams owning Fortify and Sonatype Lifecycle policy controls
 - Application teams consuming reusable workflows
 
 ## Recommended Reading Order
@@ -14,16 +14,17 @@ This directory contains structured documentation for enterprise reusable workflo
 2. `architecture.md`
 3. `workflows/fortify-fod-reusable.md`
 4. `workflows/sonatype-sca-reusable.md`
-5. `workflows/security-gate.md`
-6. `workflows/orchestrator-detector-patterns.md`
-7. `actions/fcli-custom-actions.md`
-8. `governance/compliance-rollout.md`
-9. `governance/enforcement-strategy.md`
-10. `governance/enforcement-examples.md`
-11. `governance/enforcement-templates.md`
-12. `governance/ghes-ruleset-api.md`
-13. `agent-skills/README.md`
-14. Publishing guidance under `publishing/`, including `publishing/template-sync.md`
+5. `workflows/sonatype-lifecycle-fod-sync.md`
+6. `workflows/security-gate.md`
+7. `workflows/orchestrator-detector-patterns.md`
+8. `actions/fcli-custom-actions.md`
+9. `governance/compliance-rollout.md`
+10. `governance/enforcement-strategy.md`
+11. `governance/enforcement-examples.md`
+12. `governance/enforcement-templates.md`
+13. `governance/ghes-ruleset-api.md`
+14. `agent-skills/README.md`
+15. Publishing guidance under `publishing/`, including `publishing/template-sync.md`
 
 ## Folder Layout
 

@@ -1,15 +1,17 @@
-# Reusable Workflow: Sonatype SCA
+# Reusable Workflow: Sonatype Lifecycle SCA
 
 ## Purpose
 
-Provide a reusable Sonatype SCA workflow with optional central configuration and optional FoD SBOM import integration.
+Provide a reusable Sonatype Lifecycle SCA workflow with optional central configuration and optional FoD SBOM import integration.
+
+For scheduled/manual SBOM synchronization into FoD (with configurable action-source repository/ref/path), see `workflows/sonatype-lifecycle-fod-sync.md`.
 
 ## Inputs
 
-- `application_id`: Sonatype application public ID (optional; defaults to the repository name when empty)
-- `organization_id`: Sonatype organization name/public ID (optional; defaults to repository owner `github.repository_owner`)
+- `application_id`: Sonatype Lifecycle application public ID (optional; defaults to the repository name when empty)
+- `organization_id`: Sonatype Lifecycle organization name/public ID (optional; defaults to repository owner `github.repository_owner`)
 - `create_application_if_missing`: If true, reusable workflow checks whether the application exists and creates it under the resolved organization when missing
-- `stage`: Sonatype stage, such as `build` or `release`
+- `stage`: Sonatype Lifecycle stage, such as `build` or `release`
 - `scan_targets`: Paths or files for evaluation
 - `manifest_path`: Root path for manifests
 - `parameter_priority`: `CI` or `API`
@@ -25,7 +27,7 @@ Provide a reusable Sonatype SCA workflow with optional central configuration and
 
 ## Optional Environment Variables
 
-- `LIFECYCLE_ORGANIZATION_ID` (recommended for enterprises where Sonatype org IDs differ from GitHub organization names)
+- `LIFECYCLE_ORGANIZATION_ID` (recommended for enterprises where Sonatype Lifecycle org IDs differ from GitHub organization names)
 
 ## Required Credentials
 
@@ -41,7 +43,7 @@ Provide a reusable Sonatype SCA workflow with optional central configuration and
 
 ## Central Configuration Model
 
-Use Sonatype CI Configuration REST API for enterprise defaults.
+Use Sonatype Lifecycle CI Configuration REST API for enterprise defaults.
 
 - Read merged config: `GET /api/v2/config/ci/{ownerType}/{ownerId}`
 - Update config: `PUT /api/v2/config/ci/{ownerType}/{ownerId}`
@@ -53,6 +55,8 @@ Use Sonatype CI Configuration REST API for enterprise defaults.
 - `CI`: pipeline non-empty values override API values
 
 ## GHES Artifact Considerations
+
+For signed custom action execution guidance (to avoid unsigned bypass flags), see `actions/fcli-custom-actions.md`.
 
 If IQ CLI output artifact upload encounters GHES TLS chain issues, use this controlled workaround:
 

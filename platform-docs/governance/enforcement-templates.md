@@ -117,7 +117,7 @@ foreach ($file in $workflowFiles) {
     }
 
     if ($content -notmatch "fortify-presales/platform-workflows/.github/workflows/reusable-sonatype-sca.yml@v1") {
-        $violations += "Missing required Sonatype reusable workflow ref: $($file.FullName)"
+        $violations += "Missing required Sonatype Lifecycle reusable workflow ref: $($file.FullName)"
     }
 }
 
@@ -184,7 +184,7 @@ jobs:
     uses: fortify-presales/platform-workflows/.github/workflows/reusable-security-gate.yml@v1
     with:
       required_statuses_csv: >-
-        Fortify=${{ needs.fortify.result }},Sonatype=${{ needs.sonatype.result }}
+        Fortify=${{ needs.fortify.result }},Lifecycle=${{ needs.sonatype.result }}
 
   # Optional multi-tool extension
   # gate:
@@ -192,7 +192,7 @@ jobs:
   #   uses: fortify-presales/platform-workflows/.github/workflows/reusable-security-gate.yml@v1
   #   with:
   #     required_statuses_csv: >-
-  #       Fortify=${{ needs.fortify.result }},Sonatype=${{ needs.sonatype.result }},Snyk=${{ needs.snyk.result }},CodeQL=${{ needs.codeql.result }}
+  #       Fortify=${{ needs.fortify.result }},Lifecycle=${{ needs.sonatype.result }},Snyk=${{ needs.snyk.result }},CodeQL=${{ needs.codeql.result }}
   #     allowed_statuses_csv: success
 ```
 

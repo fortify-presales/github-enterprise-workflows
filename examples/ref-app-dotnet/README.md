@@ -11,5 +11,6 @@ dotnet run --project ./src/PlatformExampleDotnet/PlatformExampleDotnet.csproj
 
 ## Notes
 
-- Security workflow is in `.github/workflows/security.yml`.
+- Branch-protection workflow is in `.github/workflows/security.yml`.
+- Scheduled/manual Sonatype Lifecycle -> FoD SBOM sync is in `.github/workflows/lifecycle-fod-sync.yml` (nightly at `0 2 * * *`).
 - Optionally set `vars.LIFECYCLE_APPLICATION_ID`; if unset, Sonatype defaults to `org/repo` (`github.repository`). Also set Fortify credentials/secrets before running scans.

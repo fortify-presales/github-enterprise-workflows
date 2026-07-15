@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Integrate centralized Fortify and Sonatype reusable workflows into repositories that already have a service detector and orchestration pattern.
+Integrate centralized Fortify and Sonatype Lifecycle reusable workflows into repositories that already have a service detector and orchestration pattern.
 
 ## Use When
 
@@ -34,7 +34,7 @@ Optional fields:
 
 1. Inspect existing detector/orchestrator jobs.
 2. Validate matrix JSON shape and required fields.
-3. Map matrix fields into reusable Fortify and Sonatype callers.
+3. Map matrix fields into reusable Fortify and Sonatype Lifecycle callers.
 4. Ensure a single aggregate security gate job remains stable for branch protection.
 5. Produce patch-ready workflow edits and a compatibility report.
 
@@ -42,7 +42,7 @@ Optional fields:
 
 - detector outputs valid JSON matrix
 - Fortify job consumes path and language correctly
-- Sonatype job consumes application_id and scan_targets correctly
+- Sonatype Lifecycle job consumes application_id and scan_targets correctly
 - gate check name is stable and referenced by branch protection policy
 - shared workflow references are pinned to approved release tags
 

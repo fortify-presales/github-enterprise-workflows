@@ -8,7 +8,7 @@ Typical examples:
 
 - Custom policy checks
 - PR-specific policy checks
-- Sonatype SBOM enrichment and FoD import
+- Sonatype Lifecycle SBOM enrichment and FoD import
 
 ## Action Authoring Standards
 
@@ -35,3 +35,62 @@ Typical examples:
 
 - Version action files with the platform-workflow release tags.
 - Avoid ad hoc repository-local copies of shared action logic.
+
+## Signing Custom Actions
+
+For production use, sign custom actions and configure runners to trust the signer public key.
+This avoids use of unsigned-action bypass options and provides tamper detection.
+
+### Why Sign
+
+- Ensures action integrity between authoring and execution.
+- Prevents accidental or malicious action-file changes from running unnoticed.
+- Supports enterprise governance requirements for trusted automation content.
+
+### Signing Workflow
+
+1. Generate or use an existing private/public key pair managed by your organization.
+2. Sign the action file with the private key.
+3. Distribute only the public key to runner environments.
+4. Import the public key on runners before executing custom actions.
+5. Run actions without unsigned bypass flags.
+
+### Sign an Action File
+
+```bash
+fcli fod action sign ./platform-actions/actions/import-lifecycle-sbom-to-fod.yaml --with /path/to/private.key
+```
+
+### Trust the Signer on a Runner
+
+```bash
+fcli config public-key import --from /path/to/public.key
+```
+
+### GitHub Actions Example (Public Key From Secret)
+
+Store the public key PEM as an organization or repository secret, then import before running custom actions.
+
+```yaml
+- name: Import trusted fcli action signer key
+	shell: bash
+	run: |
+		set -euo pipefail
+		cat > fcli-action-public.pem << 'EOF'
+		${{ secrets.FCLI_ACTION_PUBLIC_KEY_PEM }}
+		EOF
+		fcli config public-key import --from fcli-action-public.pem
+
+- name: Run signed custom action
+	shell: bash
+	run: |
+		set -euo pipefail
+		fcli fod action run https://raw.githubusercontent.com/fortify-presales/platform-actions/v1/actions/import-lifecycle-sbom-to-fod.yaml
+```
+
+### Operational Notes
+
+- Re-sign actions after any content change.
+- Keep private keys out of CI; use only public keys in runner environments.
+- Prefer pinned refs (for example release tags) for remote action URLs.
+- Remove `--on-unsigned=ignore` from production pipelines after trust is configured and validated.

@@ -1,0 +1,24 @@
+name: Sonatype Lifecycle FoD SBOM Sync
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  sync:
+    uses: fortify-presales/platform-workflows/.github/workflows/reusable-sonatype-fod-sync.yml@v1
+    with:
+      application_id: ${{ vars.LIFECYCLE_APPLICATION_ID != '' && vars.LIFECYCLE_APPLICATION_ID || github.event.repository.name }}
+      fod_release: ${{ vars.FOD_RELEASE }}
+      stage: build
+      sbom_version: "1.6"
+      platform_actions_repository: ${{ vars.PLATFORM_ACTIONS_REPOSITORY != '' && vars.PLATFORM_ACTIONS_REPOSITORY || 'fortify-presales/platform-actions' }}
+      platform_actions_ref: ${{ vars.PLATFORM_ACTIONS_REF != '' && vars.PLATFORM_ACTIONS_REF || 'v1' }}
+      platform_actions_action_path: ${{ vars.PLATFORM_ACTIONS_ACTION_PATH != '' && vars.PLATFORM_ACTIONS_ACTION_PATH || 'actions/import-lifecycle-sbom-to-fod.yaml' }}
+      upload_sbom_artifact: true
+    secrets: inherit

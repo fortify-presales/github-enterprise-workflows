@@ -38,7 +38,7 @@ Why:
 
 Gate expectation:
 
-- gate fails when Fortify or Sonatype policy criteria fail
+- gate fails when Fortify or Sonatype Lifecycle policy criteria fail
 - gate passes only when required scans succeed
 
 ## Example 3: Actions Allowlist Policy
