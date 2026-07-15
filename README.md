@@ -59,7 +59,7 @@ Optional example repositories:
 
 The first-time setup has two phases:
 
-1. Bootstrap this source repository (`github-enterprise-workflows`).
+1. Bootstrap this source repository (`appsec-platform`).
 2. Create destination platform repositories that subtree publishing will push into.
 
 ### Phase 1: Bootstrap This Source Repository
@@ -70,7 +70,7 @@ Run these commands from repository root:
 git init -b main
 git add .
 git commit -m "Initial platform workflows, docs, and examples"
-git remote add origin https://github.com/<org>/github-enterprise-workflows.git
+git remote add origin https://github.com/<org>/appsec-platform.git
 git push -u origin main
 ```
 
@@ -79,7 +79,7 @@ If your organization or host differs, update remote URL accordingly.
 For GitHub Enterprise Server, use your enterprise host:
 
 ```powershell
-git remote add origin https://<ghes-host>/<org>/github-enterprise-workflows.git
+git remote add origin https://<ghes-host>/<org>/appsec-platform.git
 git push -u origin main
 ```
 
