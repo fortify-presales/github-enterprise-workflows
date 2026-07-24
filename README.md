@@ -1,4 +1,4 @@
-# AppSec Platform (GitHub)
+# GitHub AppSec Platform 
 
 This repository is the source-of-truth monorepo for reusable GitHub application security workflows, custom policy actions, governance automation, and example projects.
 

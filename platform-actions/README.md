@@ -6,6 +6,8 @@ Central custom fcli actions used by platform reusable workflows.
 
 - `actions/check-release-policy.yaml`
 - `actions/check-pr-policy.yaml`
+- `actions/check-sast-policy.yaml`
+- `actions/check-sca-policy.yaml`
 
 ## Naming Convention
 
@@ -17,6 +19,8 @@ Preferred concise names:
 
 - `check-release-policy.yaml`
 - `check-pr-policy.yaml`
+- `check-sast-policy.yaml`
+- `check-sca-policy.yaml`
 
 Where:
 

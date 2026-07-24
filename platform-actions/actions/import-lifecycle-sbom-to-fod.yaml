@@ -27,6 +27,12 @@ config:
   rest.target.default: lifecycle
 
 formatters:
+  htmlEscape:
+    "${#replaceAllFromRegExMap(#replaceAllFromRegExMap(#replaceAllFromRegExMap(#fmt('%s',value), {'&':'&amp;'}), {'<':'&lt;'}), {'>':'&gt;'})}"
+  markdownToHtml:
+    "${#replaceAllFromRegExMap(#replaceAllFromRegExMap(#replaceAllFromRegExMap(#replaceAllFromRegExMap(#replaceAllFromRegExMap(#replaceAllFromRegExMap(#replaceAllFromRegExMap(#replaceAllFromRegExMap(#replaceAllFromRegExMap(#fmt('%s',value), {'&':'&amp;'}), {'<':'&lt;'}), {'>':'&gt;'}), {'\\[([^\\]]+)\\]\\((https?://[^)]+)\\)':'<a href=\"$2\">$1</a>'}), {'```[A-Za-z0-9_-]*\\n':'<pre><code>'}), {'\\n```':'</code></pre>'}), {'`([^`]+)`':'<code>$1</code>'}), {'\\*\\*([^*]+)\\*\\*':'<strong>$1</strong>'}), {'\\n':'<br />'})}"
+  plainToHtml:
+    "${#replaceAllFromRegExMap(#replaceAllFromRegExMap(#replaceAllFromRegExMap(#replaceAllFromRegExMap(#fmt('%s',value), {'&':'&amp;'}), {'<':'&lt;'}), {'>':'&gt;'}), {'\\n':'<br />'})}"
   # Constructs a fresh analysis object so analysis.detail can be set even when
   # the original vulnerability has no analysis block.
   analysisWithDetail:
@@ -109,6 +115,12 @@ cli.options:
     type: boolean
     required: false
     default: true
+  format-html:
+    names: --format-html
+    description: Convert enriched text and markdown content to HTML in CycloneDX vulnerability fields; disable for markdown-like plain text output
+    type: boolean
+    required: false
+    default: false
   fod-release:
     names: --fod-release
     description: FoD release identifier for --rel (id or app[:microservice]:release)
@@ -194,6 +206,8 @@ steps:
         # Reset per-iteration enrichment state
         - var.set:
             recText: null
+            recTextHtml: null
+            recDisplay: null
             recCount: 0
             abstractText: null
             affectedPurl: null
@@ -251,6 +265,12 @@ steps:
           var.set:
             recText: "${'Multiple transitive dependencies are affected by this vulnerability:\n---\n'+recText}"
 
+        - if: "${recText!=null}"
+          var.set:
+            recTextHtml:
+              fmt: plainToHtml
+              value: "${recText}"
+
         # GET vulnerability details (CVE and Sonatype IDs)
         - if: "${vuln.id!=null}"
           rest.call:
@@ -259,16 +279,44 @@ steps:
               on.success:
                 - var.set:
                     vDesc: "${#ifBlank(#fmt('%s',vulnDetail.description),'N/A')}"
-                    vExpl: "${#ifBlank(#fmt('%s',vulnDetail.explanationMarkdown),'N/A')}"
-                    vDet:  "${#ifBlank(#fmt('%s',vulnDetail.detectionMarkdown),'N/A')}"
-                    vRec:  "${#ifBlank(#fmt('%s',vulnDetail.recommendationMarkdown),'N/A')}"
+                    vExplRaw: "${vulnDetail.explanationMarkdown==null || #fmt('%s',vulnDetail.explanationMarkdown).trim().equalsIgnoreCase('null') ? 'N/A' : #ifBlank(#fmt('%s',vulnDetail.explanationMarkdown).trim(),'N/A')}"
+                    vDetRaw:  "${vulnDetail.detectionMarkdown==null || #fmt('%s',vulnDetail.detectionMarkdown).trim().equalsIgnoreCase('null') ? 'N/A' : #ifBlank(#fmt('%s',vulnDetail.detectionMarkdown).trim(),'N/A')}"
+                    vRecRaw:  "${vulnDetail.recommendationMarkdown==null || #fmt('%s',vulnDetail.recommendationMarkdown).trim().equalsIgnoreCase('null') ? 'N/A' : #ifBlank(#fmt('%s',vulnDetail.recommendationMarkdown).trim(),'N/A')}"
                     vVec:  "${vulnDetail.mainSeverity!=null ? #ifBlank(#fmt('%s',vulnDetail.mainSeverity.vector),'N/A') : 'N/A'}"
                     vEpss: "${vulnDetail.epssData!=null && vulnDetail.epssData.currentScore!=null ? #fmt('%s',vulnDetail.epssData.currentScore) : 'N/A'}"
                     vKev: "${vulnDetail.kevData!=null && vulnDetail.kevData.isKev!=null ? #fmt('%s',vulnDetail.kevData.isKev) : 'N/A'}"
                     vResearch: "${vulnDetail.researchType!=null ? vulnDetail.researchType : 'N/A'}"
                     vDetectType: "${vulnDetail.detectionType!=null ? vulnDetail.detectionType : 'N/A'}"
-                    fullDescText: "${vDesc+'\n\nExplanation:\n'+vExpl+'\n\nDetection:\n'+vDet+'\n\nSonatype Metadata:\nEPSS: '+vEpss+'\nKEV: '+vKev+'\nResearch Type: '+vResearch+'\nDetection Type: '+vDetectType}"
-                    abstractText: "${vDesc+'<br /><strong>Explanation: </strong>'+vExpl+'<br /><strong>Detection: </strong>'+vDet+'<br /><strong>Recommendation: </strong>'+(recText!=null?recText:vRec)+'<br /><strong>Threat Vectors: </strong>'+vVec+'<br /><strong>Sonatype Metadata: </strong>EPSS='+vEpss+', KEV='+vKev+', Research Type='+vResearch+', Detection Type='+vDetectType}"
+
+                - if: "${cli['format-html']}"
+                  var.set:
+                    vExpl:
+                      fmt: markdownToHtml
+                      value: "${vExplRaw}"
+                    vDet:
+                      fmt: markdownToHtml
+                      value: "${vDetRaw}"
+                    vRec:
+                      fmt: markdownToHtml
+                      value: "${vRecRaw}"
+
+                - if: "${!cli['format-html']}"
+                  var.set:
+                    vExpl: "${vExplRaw}"
+                    vDet: "${vDetRaw}"
+                    vRec: "${vRecRaw}"
+
+                - if: "${cli['format-html']}"
+                  var.set:
+                    recDisplay: "${recTextHtml!=null && !recTextHtml.equalsIgnoreCase('null') ? recTextHtml : (vRec!=null && !vRec.equalsIgnoreCase('null') ? vRec : 'N/A')}"
+                    fullDescText: "${vDesc+'<br /><br /><strong>Explanation:</strong><br />'+vExpl+'<br /><br /><strong>Detection:</strong><br />'+vDet+'<br /><br /><strong>Sonatype Metadata:</strong><br />EPSS: '+vEpss+'<br />KEV: '+vKev+'<br />Research Type: '+vResearch+'<br />Detection Type: '+vDetectType}"
+                    abstractText: "${vDesc+'<br /><br /><strong>Explanation:</strong><br />'+vExpl+'<br /><br /><strong>Detection:</strong><br />'+vDet+'<br /><br /><strong>Recommendation:</strong><br />'+recDisplay+'<br /><br /><strong>Threat Vectors:</strong><br />'+vVec+'<br /><br /><strong>Sonatype Metadata:</strong><br />EPSS='+vEpss+', KEV='+vKev+', Research Type='+vResearch+', Detection Type='+vDetectType}"
+
+                - if: "${!cli['format-html']}"
+                  var.set:
+                    recDisplay: "${recText!=null && !recText.equalsIgnoreCase('null') ? recText : (vRec!=null && !vRec.equalsIgnoreCase('null') ? vRec : 'N/A')}"
+                    fullDescText: "${'Summary: '+vDesc+'\n\nExplanation: '+vExpl+'\n\nDetection: '+vDet+'\n\nSonatype Metadata: EPSS='+vEpss+'; KEV='+vKev+'; Research Type='+vResearch+'; Detection Type='+vDetectType}"
+                    abstractText: "${'Summary: '+vDesc+'\n\nExplanation: '+vExpl+'\n\nDetection: '+vDet+'\n\nRecommendation: '+recDisplay+'\n\nThreat Vector: '+vVec+'\n\nSonatype Metadata: EPSS='+vEpss+'; KEV='+vKev+'; Research Type='+vResearch+'; Detection Type='+vDetectType}"
 
                 # Backfill references from Sonatype advisories when missing in source SBOM
                 - if: "${(vuln.references==null || vuln.references.size()==0) && vulnDetail.advisories!=null && vulnDetail.advisories.size()>0}"
@@ -326,9 +374,9 @@ steps:
                 - log.warn: "CVE detail lookup skipped for ${vuln.id}: ${lastException.message}"
 
         # Set recommendation field on vulnerability
-        - if: "${recText != null}"
+        - if: "${recDisplay != null && recDisplay != 'N/A'}"
           var.set:
-            vuln.recommendation: "${recText}"
+            vuln.recommendation: "${recDisplay}"
 
         # Set description with expanded plain-text detail for FoD display
         - if: "${fullDescText != null && fullDescText != 'N/A'}"

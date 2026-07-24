@@ -5,3 +5,4 @@ sample_workflows/
 .fortify/
 
 .tmp/
+test.ps1

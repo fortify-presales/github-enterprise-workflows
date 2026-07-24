@@ -1,0 +1,50 @@
+# yaml-language-server: $schema=https://fortify.github.io/fcli/schemas/action/fcli-action-schema-2.0.0.json
+
+author: Fortify
+usage:
+  header: Check security policy. 
+  description: |
+    This action checks the selected FoD release and returns a non-zero exit code
+    if any New or Reopen Critical or High vulnerabilities are present. It uses
+    the vulnerability list directly so the policy can focus on issue status rather
+    than the aggregate release summary counts.
+
+config:
+  rest.target.default: fod
+      
+cli.options:
+  release:
+    names: --release, --rel
+    description: "Required release id or <appName>:[<microserviceName>:]<releaseName>"
+  
+steps:
+  - var.set:
+      rel: ${#fod.release(cli.release)}
+      blockingIssues: null
+  - rest.call:
+      vulnerabilities:
+        uri: /api/v3/releases/${rel.releaseId}/vulnerabilities
+        type: paged
+        query:
+          includeFixed: true
+        records.for-each:
+          record.var-name: issue
+          if: ${issue.status != null && (issue.status.equalsIgnoreCase('New') || issue.status.toLowerCase().startsWith('reopen')) && (issue.severityString=='Critical' || issue.severityString=='High')}
+          do:
+            - var.set:
+                blockingIssues..: "${issue.status} ${issue.severityString} - ${issue.category} (${issue.primaryLocationFull}${issue.lineNumber==null?'':':'+issue.lineNumber})"
+  - var.set:
+      blockingIssueCount: "${blockingIssues==null ? 0 : blockingIssues.size()}"
+  - log.info: |
+      Fortify policy summary for release ${rel.applicationName}${#isNotBlank(rel.microserviceName)?' - '+rel.microserviceName:''} - ${rel.releaseName}
+      Blocking issues: ${blockingIssueCount}
+  - if: ${blockingIssueCount > 0}
+    log.info: |
+      Blocking issues:
+      ${#join('\n', blockingIssues)}
+  - check:
+      noNewOrReopenCriticalOrHigh:
+        display-name: No New or Reopen Critical or High issues
+        fail.if: ${blockingIssueCount > 0}
+      
+

@@ -1,0 +1,188 @@
+# yaml-language-server: $schema=https://fortify.github.io/fcli/schemas/action/fcli-action-schema-2.9.0.json
+$schema: https://fortify.github.io/fcli/schemas/action/fcli-action-schema-2.9.0.json
+
+author: Fortify Presales
+usage:
+  header: Sonatype Lifecycle SCA policy check
+  description: |
+    Checks Sonatype Lifecycle SCA issues for the specified application and
+    fails if any individual issue in scope meets or exceeds the configured severity threshold.
+
+config:
+  rest.target.default: lifecycle
+
+cli.options:
+  lifecycle-url:
+    names: --lifecycle-url, --sonatype-url
+    description: Sonatype Lifecycle base URL, for example https://iq.example.com
+    required: true
+  lifecycle-username:
+    names: --lifecycle-username, --sonatype-username
+    description: Sonatype Lifecycle username
+    required: true
+  lifecycle-password:
+    names: --lifecycle-password, --sonatype-password
+    description: Sonatype Lifecycle password
+    required: true
+    mask:
+      sensitivity: high
+  lifecycle-app-id:
+    names: --lifecycle-app-id, --sonatype-app-id, --application-id
+    description: Sonatype Lifecycle application public ID
+    required: true
+  lifecycle-stage:
+    names: --lifecycle-stage, --sonatype-stage, --stage
+    description: Sonatype Lifecycle stage name used to select the latest matching report
+    required: false
+    default: build
+  violation-threshold:
+    names: --violation-threshold, --threshold
+    description: Per-issue severity threshold (for example 8). Any in-scope issue at or above this value is blocking.
+    type: int
+    required: false
+    default: 8
+  violation-scope:
+    names: --violation-scope, --scope
+    description: Which violation levels to gate on (critical, critical-severe, all)
+    required: false
+    default: critical
+
+steps:
+  - rest.target:
+      lifecycle:
+        baseUrl: "${#replaceAllFromRegExMap(cli['lifecycle-url'], {'/+$':''})}"
+        headers:
+          Accept: application/json
+          Authorization: "${#basicAuth(cli['lifecycle-username'], cli['lifecycle-password'])}"
+
+  - var.set:
+      appInternalId: null
+      reportResponse: null
+      reportRaw: null
+      blockingIssues: null
+      blockingCriticalCount: 0
+      blockingSevereCount: 0
+      blockingModerateCount: 0
+      blockingOtherCount: 0
+
+  # Resolve internal application ID from public ID
+  - rest.call:
+      appLookup:
+        uri: /api/v2/applications
+        query:
+          publicId: "${cli['lifecycle-app-id']}"
+        on.success:
+          - var.set:
+              appInternalId: "${appLookup.applications!=null && appLookup.applications.size()>0 ? appLookup.applications[0].id : null}"
+
+  - check:
+      appIdResolved:
+        display-name: Sonatype internal application ID resolved
+        fail.if: "${appInternalId==null}"
+
+  # Use internal ID for report lookup and read policy counts from report history.
+  - if: "${appInternalId!=null}"
+    rest.call:
+      reportByInternalId:
+        uri: "/api/v2/reports/applications/${appInternalId}/history"
+        on.success:
+          - var.set:
+              reportResponse: "${reportByInternalId}"
+        on.fail:
+          - log.warn:
+              msg: "Report lookup by internal ID failed for ${appInternalId}: ${lastException.message}"
+
+  - check:
+      reportAvailable:
+        display-name: Sonatype report is available
+        fail.if: "${reportResponse==null || reportResponse.reports==null || reportResponse.reports[0]==null}"
+
+    # Normalize report shape and select latest report entry.
+  - var.set:
+      reportObj: "${reportResponse.reports!=null && reportResponse.reports[0]!=null ? reportResponse.reports[0] : (reportResponse[0]!=null ? reportResponse[0] : reportResponse)}"
+      criticalViolationCount: "${reportObj.policyEvaluationResult!=null && reportObj.policyEvaluationResult.criticalPolicyViolationCount!=null ? reportObj.policyEvaluationResult.criticalPolicyViolationCount : 0}"
+      severeViolationCount: "${reportObj.policyEvaluationResult!=null && reportObj.policyEvaluationResult.severePolicyViolationCount!=null ? reportObj.policyEvaluationResult.severePolicyViolationCount : 0}"
+      moderateViolationCount: "${reportObj.policyEvaluationResult!=null && reportObj.policyEvaluationResult.moderatePolicyViolationCount!=null ? reportObj.policyEvaluationResult.moderatePolicyViolationCount : 0}"
+      grandfatheredViolationCount: "${reportObj.policyEvaluationResult!=null && reportObj.policyEvaluationResult.grandfatheredPolicyViolationCount!=null ? reportObj.policyEvaluationResult.grandfatheredPolicyViolationCount : 0}"
+      legacyViolationCount: "${reportObj.policyEvaluationResult!=null && reportObj.policyEvaluationResult.legacyViolationCount!=null ? reportObj.policyEvaluationResult.legacyViolationCount : 0}"
+      policyViolationCount: "${reportObj.policyEvaluationResult!=null ? ((reportObj.policyEvaluationResult.criticalPolicyViolationCount!=null ? reportObj.policyEvaluationResult.criticalPolicyViolationCount : 0) + (reportObj.policyEvaluationResult.severePolicyViolationCount!=null ? reportObj.policyEvaluationResult.severePolicyViolationCount : 0) + (reportObj.policyEvaluationResult.moderatePolicyViolationCount!=null ? reportObj.policyEvaluationResult.moderatePolicyViolationCount : 0) + (reportObj.policyEvaluationResult.grandfatheredPolicyViolationCount!=null ? reportObj.policyEvaluationResult.grandfatheredPolicyViolationCount : 0) + (reportObj.policyEvaluationResult.legacyViolationCount!=null ? reportObj.policyEvaluationResult.legacyViolationCount : 0)) : (reportObj.policyViolationCount!=null ? reportObj.policyViolationCount : (reportObj.policyViolations!=null ? reportObj.policyViolations : 0))}"
+      evaluatedViolationCount: "${cli['violation-scope']!=null && cli['violation-scope'].equalsIgnoreCase('all') ? policyViolationCount : (cli['violation-scope']!=null && cli['violation-scope'].equalsIgnoreCase('critical-severe') ? (criticalViolationCount+severeViolationCount) : criticalViolationCount)}"
+      includeCritical: true
+      includeSevere: "${cli['violation-scope']!=null && (cli['violation-scope'].equalsIgnoreCase('all') || cli['violation-scope'].equalsIgnoreCase('critical-severe'))}"
+      includeModerate: "${cli['violation-scope']!=null && cli['violation-scope'].equalsIgnoreCase('all')}"
+      includeGrandfathered: "${cli['violation-scope']!=null && cli['violation-scope'].equalsIgnoreCase('all')}"
+      includeLegacy: "${cli['violation-scope']!=null && cli['violation-scope'].equalsIgnoreCase('all')}"
+
+  - if: "${reportObj.reportDataUrl!=null}"
+    rest.call:
+      reportRawByDataUrl:
+        uri: "/${#replaceAllFromRegExMap(#fmt('%s',reportObj.reportDataUrl), {'^/+':''})}"
+        on.success:
+          - var.set:
+              reportRaw: "${reportRawByDataUrl}"
+        on.fail:
+          - log.warn:
+              msg: "Raw report lookup failed for ${cli['lifecycle-app-id']}: ${lastException.message}"
+
+  - check:
+      rawReportAvailable:
+        display-name: Sonatype raw report is available for issue-level thresholding
+        fail.if: "${reportRaw==null || reportRaw.components==null}"
+
+  - if: "${reportRaw!=null && reportRaw.components!=null}"
+    records.for-each:
+      from: "${reportRaw.components}"
+      record.var-name: comp
+      do:
+        - if: "${comp.securityData!=null && comp.securityData.securityIssues!=null}"
+          records.for-each:
+            from: "${comp.securityData.securityIssues}"
+            record.var-name: secIssue
+            do:
+              - var.set:
+                  issueSeverity: "${secIssue.severity!=null ? secIssue.severity : 0}"
+                  issueThreat: "${secIssue.threatCategory!=null ? #fmt('%s',secIssue.threatCategory) : 'unknown'}"
+                  scopeMatch: "${(includeCritical && issueThreat.equalsIgnoreCase('critical')) || (includeSevere && issueThreat.equalsIgnoreCase('severe')) || (includeModerate && issueThreat.equalsIgnoreCase('moderate')) || (cli['violation-scope']!=null && cli['violation-scope'].equalsIgnoreCase('all') && !(issueThreat.equalsIgnoreCase('critical') || issueThreat.equalsIgnoreCase('severe') || issueThreat.equalsIgnoreCase('moderate')))}"
+                  thresholdMatch: "${issueSeverity >= cli['violation-threshold']}"
+
+              - if: "${scopeMatch && thresholdMatch}"
+                do:
+                  - var.set:
+                      blockingIssues..: "${issueThreat+' issue severity '+issueSeverity+' - '+(secIssue.reference!=null ? secIssue.reference : 'N/A')+' ('+(comp.displayName!=null ? comp.displayName : 'component')+')'}"
+                  - if: "${issueThreat.equalsIgnoreCase('critical')}"
+                    var.set:
+                      blockingCriticalCount: "${blockingCriticalCount+1}"
+                  - if: "${issueThreat.equalsIgnoreCase('severe')}"
+                    var.set:
+                      blockingSevereCount: "${blockingSevereCount+1}"
+                  - if: "${issueThreat.equalsIgnoreCase('moderate')}"
+                    var.set:
+                      blockingModerateCount: "${blockingModerateCount+1}"
+                  - if: "${!(issueThreat.equalsIgnoreCase('critical') || issueThreat.equalsIgnoreCase('severe') || issueThreat.equalsIgnoreCase('moderate'))}"
+                    var.set:
+                      blockingOtherCount: "${blockingOtherCount+1}"
+
+  - var.set:
+      blockingIssueCount: "${blockingIssues==null ? 0 : blockingIssues.size()}"
+
+  - log.info:
+      msg: |
+        Sonatype SCA policy summary for ${cli['lifecycle-app-id']}
+        Stage: ${reportObj.stage!=null ? reportObj.stage : cli['lifecycle-stage']}
+        Scope: ${cli['violation-scope']}
+        Per-issue severity threshold: ${cli['violation-threshold']}
+        Blocking issues at/above threshold: ${blockingIssueCount}
+        Blocking by threat category: Critical=${blockingCriticalCount}, Severe=${blockingSevereCount}, Moderate=${blockingModerateCount}, Other=${blockingOtherCount}
+        Total policy violations: ${policyViolationCount}
+        Severity totals (informational): Critical=${criticalViolationCount}, Severe=${severeViolationCount}, Moderate=${moderateViolationCount}, Grandfathered=${grandfatheredViolationCount}, Legacy=${legacyViolationCount}
+
+  - if: "${blockingIssueCount > 0}"
+    log.info:
+      msg: |
+        Blocking issues:
+        ${#join('\n', blockingIssues)}
+
+  - check:
+      policyViolationThreshold:
+        display-name: No in-scope issue may meet or exceed threshold
+        fail.if: "${blockingIssueCount > 0}"
